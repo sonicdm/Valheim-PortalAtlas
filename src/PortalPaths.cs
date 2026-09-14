@@ -1,11 +1,12 @@
 using System.IO;
 using BepInEx;
 
-namespace ValheimPortalList
+namespace PortalAtlas
 {
 	internal static class PortalPaths
 	{
-		internal const string FolderName = "ValheimPortalList";
+		internal const string FolderName = "PortalAtlas";
+		private const string LegacyFolderName = "ValheimPortalList";
 
 		internal static string CacheRoot
 		{
@@ -13,6 +14,7 @@ namespace ValheimPortalList
 			{
 				string root = Path.Combine(Paths.CachePath, FolderName);
 				Directory.CreateDirectory(root);
+				TryMigrateLegacyCache(root);
 				return root;
 			}
 		}
@@ -33,6 +35,30 @@ namespace ValheimPortalList
 				value = value.Replace(c, '_');
 
 			return string.IsNullOrWhiteSpace(value) ? fallback : value;
+		}
+
+		/// <summary>
+		/// One-time copy from the pre-rename cache folder so existing journals keep working.
+		/// </summary>
+		private static void TryMigrateLegacyCache(string newRoot)
+		{
+			try
+			{
+				string legacy = Path.Combine(Paths.CachePath, LegacyFolderName);
+				if (!Directory.Exists(legacy))
+					return;
+
+				foreach (string src in Directory.GetFiles(legacy))
+				{
+					string dest = Path.Combine(newRoot, Path.GetFileName(src));
+					if (!File.Exists(dest))
+						File.Copy(src, dest);
+				}
+			}
+			catch
+			{
+				// Non-fatal — fresh journal is fine if migrate fails.
+			}
 		}
 	}
 }

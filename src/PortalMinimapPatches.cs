@@ -3,7 +3,7 @@ using HarmonyLib;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-namespace ValheimPortalList
+namespace PortalAtlas
 {
 	/// <summary>
 	/// Keep large-map zoom stable while the cursor is over the portals panel and the

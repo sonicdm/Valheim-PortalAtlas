@@ -1,9 +1,9 @@
 {
-  "name": "ValheimPortalList",
+  "name": "PortalAtlas",
   "author": "SonicDM",
-  "version_number": "1.2.2",
-  "website_url": "https://github.com/sonicdm/ValheimPortalList",
-  "description": "Known-portal journal and map panel. Approach to record portals; optional Auto-pin; admin Refresh for the full world list. Vanilla pairing stays.",
+  "version_number": "1.2.3",
+  "website_url": "https://github.com/sonicdm/Valheim-PortalAtlas",
+  "description": "Personal portal atlas for Valheim. Record gates as you find them; admins can Refresh the full world list. Optional Auto-pin. Vanilla pairing stays.",
   "dependencies": [
     "denikson-BepInExPack_Valheim-5.4.2202",
     "ValheimModding-Jotunn-2.23.0"

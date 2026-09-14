@@ -7,7 +7,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 $ProjectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$Project = Join-Path $ProjectRoot "ValheimPortalList.csproj"
+$Project = Join-Path $ProjectRoot "PortalAtlas.csproj"
 $Dist = Join-Path $ProjectRoot "dist"
 
 if (-not (Test-Path -LiteralPath $LibDir)) {
@@ -37,12 +37,12 @@ try {
     dotnet build $Project -c $Configuration -p:ValheimLibDir="$LibDir" | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "dotnet build failed with exit code $LASTEXITCODE" }
 
-    $Dll = Join-Path $ProjectRoot "bin\$Configuration\ValheimPortalList.dll"
+    $Dll = Join-Path $ProjectRoot "bin\$Configuration\PortalAtlas.dll"
     if (-not (Test-Path -LiteralPath $Dll)) { throw "Build succeeded but DLL was not found at $Dll" }
 
     New-Item -ItemType Directory -Force -Path $Dist | Out-Null
-    Copy-Item -LiteralPath $Dll -Destination (Join-Path $Dist "ValheimPortalList.dll") -Force
-    Write-Host "DLL: $(Join-Path $Dist 'ValheimPortalList.dll')"
+    Copy-Item -LiteralPath $Dll -Destination (Join-Path $Dist "PortalAtlas.dll") -Force
+    Write-Host "DLL: $(Join-Path $Dist 'PortalAtlas.dll')"
 
     if ($Package) {
         & (Join-Path $ProjectRoot "package.ps1") -LibDir $LibDir -Configuration $Configuration -SkipBuild -OutDir $Dist

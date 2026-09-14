@@ -6,7 +6,7 @@ using System.Text;
 using HarmonyLib;
 using UnityEngine;
 
-namespace ValheimPortalList
+namespace PortalAtlas
 {
 	internal static class KnownPortalCache
 	{
@@ -19,9 +19,9 @@ namespace ValheimPortalList
 		{
 			get
 			{
-				if (ValheimPortalListPlugin.ApproachRangeMeters == null)
+				if (PortalAtlasPlugin.ApproachRangeMeters == null)
 					return 8f;
-				return Mathf.Clamp(ValheimPortalListPlugin.ApproachRangeMeters.Value, 1f, 50f);
+				return Mathf.Clamp(PortalAtlasPlugin.ApproachRangeMeters.Value, 1f, 50f);
 			}
 		}
 
@@ -120,9 +120,9 @@ namespace ValheimPortalList
 				}
 
 				int removed = CompactDuplicates();
-				ValheimPortalListPlugin.ModLogger.LogInfo(
+				PortalAtlasPlugin.ModLogger.LogInfo(
 					$"Loaded {Entries.Count} known portal(s) from {path}");
-				ValheimPortalListPlugin.Debug(
+				PortalAtlasPlugin.Debug(
 					$"Journal load world='{_worldId}' character='{_characterId}' count={Entries.Count} " +
 					$"compacted={removed} path={path}");
 				if (removed > 0)
@@ -130,7 +130,7 @@ namespace ValheimPortalList
 			}
 			catch (Exception ex)
 			{
-				ValheimPortalListPlugin.ModLogger.LogWarning($"Failed to load portal journal: {ex.Message}");
+				PortalAtlasPlugin.ModLogger.LogWarning($"Failed to load portal journal: {ex.Message}");
 			}
 		}
 
@@ -151,11 +151,11 @@ namespace ValheimPortalList
 				File.WriteAllText(path, SimpleJson.Serialize(file), new UTF8Encoding(false));
 				_dirty = false;
 				_earliestSaveTime = 0f;
-				ValheimPortalListPlugin.Debug($"Journal save count={Entries.Count} path={path}");
+				PortalAtlasPlugin.Debug($"Journal save count={Entries.Count} path={path}");
 			}
 			catch (Exception ex)
 			{
-				ValheimPortalListPlugin.ModLogger.LogWarning($"Failed to save portal journal: {ex.Message}");
+				PortalAtlasPlugin.ModLogger.LogWarning($"Failed to save portal journal: {ex.Message}");
 			}
 		}
 
@@ -238,8 +238,8 @@ namespace ValheimPortalList
 			if (_earliestSaveTime <= 0f)
 				_earliestSaveTime = Time.unscaledTime + SaveDebounceSeconds;
 
-			bool autoPin = ValheimPortalListPlugin.AutoPin != null && ValheimPortalListPlugin.AutoPin.Value;
-			ValheimPortalListPlugin.Debug(
+			bool autoPin = PortalAtlasPlugin.AutoPin != null && PortalAtlasPlugin.AutoPin.Value;
+			PortalAtlasPlugin.Debug(
 				$"Record {(isNew ? "new" : "update")} prefab={prefab} tag='{tag}' uid={uid} " +
 				$"pos=({pos.x:0.#},{pos.z:0.#}) link={(!targetId.IsNone() ? targetUid : "none")} autoPin={autoPin}");
 
@@ -308,7 +308,7 @@ namespace ValheimPortalList
 			_dirty = true;
 			Save();
 
-			if (alsoAutoPin || (ValheimPortalListPlugin.AutoPin != null && ValheimPortalListPlugin.AutoPin.Value))
+			if (alsoAutoPin || (PortalAtlasPlugin.AutoPin != null && PortalAtlasPlugin.AutoPin.Value))
 				PortalMapPins.UpsertSavedPin(entry);
 
 			return true;
@@ -324,7 +324,7 @@ namespace ValheimPortalList
 				view = portal.GetComponentInParent<ZNetView>();
 			if ((UnityEngine.Object)view == null || view.GetZDO() == null)
 			{
-				ValheimPortalListPlugin.Debug(
+				PortalAtlasPlugin.Debug(
 					$"RecordTeleportWorld skipped — no ZNetView on '{portal.gameObject.name}'");
 				return;
 			}
@@ -350,7 +350,7 @@ namespace ValheimPortalList
 			}
 			catch (Exception ex)
 			{
-				ValheimPortalListPlugin.Debug($"GetPortalList failed: {ex.Message}");
+				PortalAtlasPlugin.Debug($"GetPortalList failed: {ex.Message}");
 			}
 
 			if (portalZdos != null && portalZdos.Count > 0)
@@ -379,9 +379,9 @@ namespace ValheimPortalList
 
 				_lastNearbyCount = nearby;
 
-				if (ValheimPortalListPlugin.DebugEnabled && nearby > 0 && _dirty && !wasDirty)
+				if (PortalAtlasPlugin.DebugEnabled && nearby > 0 && _dirty && !wasDirty)
 				{
-					ValheimPortalListPlugin.Debug(
+					PortalAtlasPlugin.Debug(
 						$"Approach scan via GetPortalList: total={portalZdos.Count} nearby={nearby} " +
 						$"range={range:0.#}m player=({pos.x:0.#},{pos.z:0.#})");
 				}
@@ -409,9 +409,9 @@ namespace ValheimPortalList
 
 			_lastNearbyCount = fallbackNearby;
 
-			if (ValheimPortalListPlugin.DebugEnabled && fallbackNearby > 0 && _dirty && !fallbackDirty)
+			if (PortalAtlasPlugin.DebugEnabled && fallbackNearby > 0 && _dirty && !fallbackDirty)
 			{
-				ValheimPortalListPlugin.Debug(
+				PortalAtlasPlugin.Debug(
 					$"Approach scan fallback TeleportWorld[]: instances={portals.Length} nearby={fallbackNearby} range={range:0.#}m");
 			}
 		}
@@ -501,7 +501,7 @@ namespace ValheimPortalList
 			foreach (string uid in remove)
 			{
 				Entries.Remove(uid);
-				ValheimPortalListPlugin.Debug(
+				PortalAtlasPlugin.Debug(
 					$"Journal merge: removed duplicate '{tag}' uid={uid} (keeping {keepUid})");
 			}
 
@@ -553,7 +553,7 @@ namespace ValheimPortalList
 			{
 				if (Entries.TryGetValue(uid, out KnownPortalEntry dropped))
 				{
-					ValheimPortalListPlugin.Debug(
+					PortalAtlasPlugin.Debug(
 						$"Journal compact: removed '{dropped.Tag}' uid={uid} at ({dropped.X:0.#},{dropped.Z:0.#})");
 				}
 				Entries.Remove(uid);

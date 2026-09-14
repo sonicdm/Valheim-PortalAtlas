@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Local release for Valheim Portal List (Valheim refs are not available on GitHub-hosted runners).
+  Local release for Portal Atlas (Valheim refs are not available on GitHub-hosted runners).
 
 .DESCRIPTION
   1. Validates PluginVersion / csproj / manifest.json agree
@@ -68,8 +68,8 @@ function Get-ChangelogSection {
 
 # --- Version alignment ---
 $ManifestPath = Join-Path $ProjectRoot "manifest.json"
-$PluginSrc = Join-Path $ProjectRoot "src\ValheimPortalListPlugin.cs"
-$CsprojPath = Join-Path $ProjectRoot "ValheimPortalList.csproj"
+$PluginSrc = Join-Path $ProjectRoot "src\PortalAtlasPlugin.cs"
+$CsprojPath = Join-Path $ProjectRoot "PortalAtlas.csproj"
 $ChangelogPath = Join-Path $ProjectRoot "CHANGELOG.md"
 
 $manifest = Get-Content -LiteralPath $ManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json

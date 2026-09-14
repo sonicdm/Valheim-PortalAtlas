@@ -1,10 +1,10 @@
-# Valheim Portal List
+# Portal Atlas
 
-Personal portal journal and map panel for Valheim. Vanilla tag pairing stays. Full world dumps are opt-in.
+Personal portal atlas for Valheim. Record gates as you find them; admins can Refresh the full world list. Vanilla tag pairing stays.
 
 | | |
 | --- | --- |
-| Version | 1.2.2 |
+| Version | 1.2.3 |
 | GUID | `sonicdm.valheimportallist` |
 | Dependencies | BepInExPack Valheim, Jötunn |
 
@@ -34,7 +34,7 @@ Approach range for auto-record (and Auto-pin) is configurable: `Pins.ApproachRan
 
 ### Files
 
-Under `BepInEx/cache/ValheimPortalList/` (not config):
+Under `BepInEx/cache/PortalAtlas/` (not config):
 
 - Journal JSON per world + character
 - Host CSV / tag summary / text report (startup dump and `portallist`)

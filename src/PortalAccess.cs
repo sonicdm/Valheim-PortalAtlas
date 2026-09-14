@@ -3,7 +3,7 @@ using System.Reflection;
 using Jotunn;
 using Jotunn.Managers;
 
-namespace ValheimPortalList
+namespace PortalAtlas
 {
 	internal static class PortalAccess
 	{
@@ -45,7 +45,7 @@ namespace ValheimPortalList
 			}
 			catch (Exception ex)
 			{
-				ValheimPortalListPlugin.Debug($"SynchronizationManager.PlayerIsAdmin failed: {ex.Message}");
+				PortalAtlasPlugin.Debug($"SynchronizationManager.PlayerIsAdmin failed: {ex.Message}");
 			}
 
 			// Legacy fallbacks if Jötunn sync is unavailable.
@@ -67,7 +67,7 @@ namespace ValheimPortalList
 			}
 			catch (Exception ex)
 			{
-				ValheimPortalListPlugin.Debug($"IsLocalPlayerAdmin fallback failed: {ex.Message}");
+				PortalAtlasPlugin.Debug($"IsLocalPlayerAdmin fallback failed: {ex.Message}");
 			}
 
 			return false;
@@ -88,7 +88,7 @@ namespace ValheimPortalList
 			}
 			catch (Exception ex)
 			{
-				ValheimPortalListPlugin.Debug($"ZNet.IsAdmin({sender}) failed: {ex.Message}");
+				PortalAtlasPlugin.Debug($"ZNet.IsAdmin({sender}) failed: {ex.Message}");
 			}
 
 			ZNetPeer peer = ZNet.instance.GetPeer(sender);

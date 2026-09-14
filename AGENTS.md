@@ -1,23 +1,23 @@
-# AGENTS.md — Valheim Portal List
+# AGENTS.md — Portal Atlas
 
 Guidance for Cursor agents (and humans) working in this repo.
 
 ## What this is
 
-Valheim **BepInEx** mod: personal portal journal + map panel. Vanilla tag pairing stays. Full world list is opt-in Refresh only.
+Valheim **BepInEx** mod: personal portal atlas + map panel. Vanilla tag pairing stays. Full world list is opt-in Refresh only.
 
 | | |
 | --- | --- |
 | GUID | `sonicdm.valheimportallist` |
-| Assembly | `ValheimPortalList.dll` |
+| Assembly | `PortalAtlas.dll` |
 | Source | `src/` |
-| GitHub | https://github.com/sonicdm/ValheimPortalList |
+| GitHub | https://github.com/sonicdm/Valheim-PortalAtlas |
 
 ## Product rules
 
 - Panel opens on the **known-portal journal**, never an automatic world dump.
 - **Refresh world** is explicit and **session-only** — it never writes the journal. Use **Add to journal** to save a selected world-list row.
-- Journal JSON and CSV/txt dumps live under `BepInEx/cache/ValheimPortalList/` — **not** `BepInEx/config` (r2modman config UI).
+- Journal JSON and CSV/txt dumps live under `BepInEx/cache/PortalAtlas/` — **not** `BepInEx/config` (r2modman config UI).
 - Approach a loaded portal to record it (`Pins.ApproachRangeMeters`, default 8); Auto-pin (default off) is the only permanent pin path.
 - Temporary map overlay while the panel is open; tinted differently from saved pins.
 - Map **Portals** button opens the dedicated wood panel.
@@ -51,8 +51,8 @@ After code changes, verify with `.\build.ps1` before finishing. Prefer **build o
 
 ## Version bumps
 
-Do not bump `1.2.2` until the user asks to ship. When shipping, keep these aligned: `PluginVersion`, csproj `<Version>`, `manifest.json` `version_number`, README Version row, `CHANGELOG.md` `## X.Y.Z`.
+Do not bump `1.2.3` until the user asks to ship. When shipping, keep these aligned: `PluginVersion`, csproj `<Version>`, `manifest.json` `version_number`, README Version row, `CHANGELOG.md` `## X.Y.Z`.
 
 ## Install
 
-Do **not** copy the DLL into an r2modman profile. User installs themselves. Build output: `bin\Release\ValheimPortalList.dll` and `dist\ValheimPortalList.dll`.
+Do **not** copy the DLL into an r2modman profile. User installs themselves. Build output: `bin\Release\PortalAtlas.dll` and `dist\PortalAtlas.dll`.

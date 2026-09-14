@@ -64,7 +64,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: ValheimPortalList ${{ github.ref_name }}
+          name: Portal Atlas ${{ github.ref_name }}
           body_file: release_notes.md
           draft: false
           prerelease: false

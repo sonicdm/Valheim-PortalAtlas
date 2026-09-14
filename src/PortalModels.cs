@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace ValheimPortalList
+namespace PortalAtlas
 {
 	internal sealed class PortalRow
 	{

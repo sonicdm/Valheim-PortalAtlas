@@ -7,16 +7,16 @@ using Jotunn.Managers;
 using Jotunn.Utils;
 using UnityEngine;
 
-namespace ValheimPortalList
+namespace PortalAtlas
 {
 	[BepInPlugin(PluginGuid, PluginName, PluginVersion)]
 	[BepInDependency(Jotunn.Main.ModGuid)]
 	[NetworkCompatibility(CompatibilityLevel.NotEnforced, VersionStrictness.None)]
-	public sealed class ValheimPortalListPlugin : BaseUnityPlugin
+	public sealed class PortalAtlasPlugin : BaseUnityPlugin
 	{
 		public const string PluginGuid = "sonicdm.valheimportallist";
-		public const string PluginName = "Valheim Portal List";
-		public const string PluginVersion = "1.2.2";
+		public const string PluginName = "Portal Atlas";
+		public const string PluginVersion = "1.2.3";
 
 		internal static ManualLogSource ModLogger;
 		internal static ConfigEntry<bool> AutoPin;
@@ -126,7 +126,7 @@ namespace ValheimPortalList
 			{
 				new Terminal.ConsoleCommand(
 					"portals",
-					"Toggle the Valheim Portal List panel",
+					"Toggle the Portal Atlas panel",
 					args =>
 					{
 						Debug("Command: portals");
@@ -137,24 +137,24 @@ namespace ValheimPortalList
 
 				new Terminal.ConsoleCommand(
 					"portallist",
-					"Export every portal to CSV under BepInEx/cache/ValheimPortalList (admin / host+devcommands)",
+					"Export every portal to CSV under BepInEx/cache/PortalAtlas (admin / host+devcommands)",
 					args =>
 					{
 						Debug($"Command: portallist canRefresh={PortalAccess.CanRefreshWorld()} isServer={ZNet.instance != null && ZNet.instance.IsServer()}");
 						if (!PortalAccess.CanRefreshWorld() && !(ZNet.instance != null && ZNet.instance.IsServer()))
 						{
-							args.Context.AddString("ValheimPortalList: need adminlist or host with devcommands.");
+							args.Context.AddString("Portal Atlas: need adminlist (dedicated) or be the world host.");
 							return;
 						}
 
 						if (ZNet.instance != null && ZNet.instance.IsServer())
 						{
 							PortalDumpResult result = PortalScan.DumpPortals();
-							args.Context.AddString($"ValheimPortalList: wrote {result.Rows.Count} portal(s) to {result.CsvPath}");
+							args.Context.AddString($"Portal Atlas: wrote {result.Rows.Count} portal(s) to {result.CsvPath}");
 						}
 						else
 						{
-							args.Context.AddString("ValheimPortalList: run portallist on the host, or use Refresh world in the panel.");
+							args.Context.AddString("Portal Atlas: run portallist on the host, or use Refresh world in the panel.");
 						}
 					},
 					false, false, false, false, false, false, null, false, false, true);

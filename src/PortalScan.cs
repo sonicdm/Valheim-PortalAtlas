@@ -8,7 +8,7 @@ using System.Text;
 using BepInEx.Configuration;
 using UnityEngine;
 
-namespace ValheimPortalList
+namespace PortalAtlas
 {
 	internal static class PortalScan
 	{
@@ -24,10 +24,10 @@ namespace ValheimPortalList
 		{
 			DumpDelaySeconds = config.Bind("General", "DumpDelaySeconds", 15f,
 				"Seconds to wait after the server/world becomes available before writing portal CSV reports.");
-			OutputFileName = config.Bind("General", "OutputFileName", "ValheimPortalList.csv",
-				"CSV file written under BepInEx/cache/ValheimPortalList/.");
+			OutputFileName = config.Bind("General", "OutputFileName", "PortalAtlas.csv",
+				"CSV file written under BepInEx/cache/PortalAtlas/.");
 			WriteTextReport = config.Bind("General", "WriteTextReport", true,
-				"Also write a human-readable ValheimPortalList.txt report.");
+				"Also write a human-readable PortalAtlas.txt report.");
 			WriteTagSummary = config.Bind("General", "WriteTagSummary", true,
 				"Also write ValheimPortalTagSummary.csv.");
 		}
@@ -52,7 +52,7 @@ namespace ValheimPortalList
 			if (_readySince < 0f)
 			{
 				_readySince = Time.realtimeSinceStartup;
-				ValheimPortalListPlugin.ModLogger.LogInfo(
+				PortalAtlasPlugin.ModLogger.LogInfo(
 					$"World/server detected. Waiting {DumpDelaySeconds.Value:0.#}s before portal CSV scan...");
 				return;
 			}
@@ -67,8 +67,8 @@ namespace ValheimPortalList
 			}
 			catch (Exception ex)
 			{
-				ValheimPortalListPlugin.ModLogger.LogError("Portal scan failed. Will retry in 10 seconds.");
-				ValheimPortalListPlugin.ModLogger.LogError(ex);
+				PortalAtlasPlugin.ModLogger.LogError("Portal scan failed. Will retry in 10 seconds.");
+				PortalAtlasPlugin.ModLogger.LogError(ex);
 				_readySince = Time.realtimeSinceStartup + 10f - Math.Max(0f, DumpDelaySeconds.Value);
 			}
 		}
@@ -84,7 +84,7 @@ namespace ValheimPortalList
 			List<PortalRow> rows = new List<PortalRow>();
 			List<GameObject> portalPrefabs = FindPortalPrefabs();
 
-			ValheimPortalListPlugin.ModLogger.LogInfo(
+			PortalAtlasPlugin.ModLogger.LogInfo(
 				$"Found {portalPrefabs.Count} registered prefab(s) containing TeleportWorld.");
 
 			foreach (GameObject prefab in portalPrefabs)
@@ -93,7 +93,7 @@ namespace ValheimPortalList
 					continue;
 
 				List<ZDO> zdos = GetZDOsWithPrefab(prefab.name);
-				ValheimPortalListPlugin.ModLogger.LogInfo($"{prefab.name}: {zdos.Count} portal ZDO(s)");
+				PortalAtlasPlugin.ModLogger.LogInfo($"{prefab.name}: {zdos.Count} portal ZDO(s)");
 
 				foreach (ZDO zdo in zdos)
 				{
@@ -160,7 +160,7 @@ namespace ValheimPortalList
 
 			AnalyzeRelationships(rows);
 
-			if (ValheimPortalListPlugin.DebugEnabled)
+			if (PortalAtlasPlugin.DebugEnabled)
 				LogScanDebug(rows, portalPrefabs.Count);
 
 			return new PortalDumpResult
@@ -187,13 +187,13 @@ namespace ValheimPortalList
 				else unconnected++;
 			}
 
-			ValheimPortalListPlugin.Debug(
+			PortalAtlasPlugin.Debug(
 				$"Scan summary: total={rows.Count} prefabs={prefabCount} wood={wood} stone={stone} " +
 				$"connected={connected} one-way={oneWay} tagTwin={tagTwin} unconnected={unconnected}");
 
 			foreach (PortalRow row in rows)
 			{
-				ValheimPortalListPlugin.Debug(
+				PortalAtlasPlugin.Debug(
 					$"  [{row.Prefab}] '{row.DisplayTag}' {row.StatusLabel} sameTag={row.SameTagCount} " +
 					$"uid={row.Uid} link={row.TargetUid} pos=({row.X:0.#},{row.Z:0.#}) rel={row.Relationship}");
 			}
@@ -205,26 +205,26 @@ namespace ValheimPortalList
 			List<PortalRow> rows = result.Rows;
 
 			string cacheDir = PortalPaths.CacheRoot;
-			string csvPath = Path.Combine(cacheDir, PortalPaths.Sanitize(OutputFileName.Value, "ValheimPortalList.csv"));
+			string csvPath = Path.Combine(cacheDir, PortalPaths.Sanitize(OutputFileName.Value, "PortalAtlas.csv"));
 			WriteCsv(csvPath, rows);
 
-			ValheimPortalListPlugin.ModLogger.LogInfo($"Portal scan complete: {rows.Count} portal(s) found.");
-			ValheimPortalListPlugin.ModLogger.LogInfo($"CSV: {csvPath}");
+			PortalAtlasPlugin.ModLogger.LogInfo($"Portal scan complete: {rows.Count} portal(s) found.");
+			PortalAtlasPlugin.ModLogger.LogInfo($"CSV: {csvPath}");
 			result.CsvPath = csvPath;
 
 			if (WriteTagSummary.Value)
 			{
 				string summaryCsvPath = Path.Combine(cacheDir, "ValheimPortalTagSummary.csv");
 				WriteTagSummaryCsv(summaryCsvPath, rows);
-				ValheimPortalListPlugin.ModLogger.LogInfo($"Tag summary CSV: {summaryCsvPath}");
+				PortalAtlasPlugin.ModLogger.LogInfo($"Tag summary CSV: {summaryCsvPath}");
 				result.SummaryCsvPath = summaryCsvPath;
 			}
 
 			if (WriteTextReport.Value)
 			{
-				string txtPath = Path.Combine(cacheDir, "ValheimPortalList.txt");
+				string txtPath = Path.Combine(cacheDir, "PortalAtlas.txt");
 				WriteText(txtPath, rows, result.PortalPrefabCount);
-				ValheimPortalListPlugin.ModLogger.LogInfo($"Text report: {txtPath}");
+				PortalAtlasPlugin.ModLogger.LogInfo($"Text report: {txtPath}");
 				result.TextPath = txtPath;
 			}
 
@@ -355,7 +355,7 @@ namespace ValheimPortalList
 				}
 				catch (Exception ex)
 				{
-					ValheimPortalListPlugin.ModLogger.LogDebug(
+					PortalAtlasPlugin.ModLogger.LogDebug(
 						$"Runtime GetAllZDOsWithPrefab invocation failed: {ex.GetType().Name}: {ex.Message}");
 				}
 			}
@@ -376,7 +376,7 @@ namespace ValheimPortalList
 			}
 			catch (Exception ex)
 			{
-				ValheimPortalListPlugin.ModLogger.LogDebug($"GetSaveClone fallback failed: {ex.GetType().Name}: {ex.Message}");
+				PortalAtlasPlugin.ModLogger.LogDebug($"GetSaveClone fallback failed: {ex.GetType().Name}: {ex.Message}");
 			}
 
 			foreach (FieldInfo field in zdoManType.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
@@ -649,7 +649,7 @@ namespace ValheimPortalList
 		{
 			using (StreamWriter writer = new StreamWriter(path, false, new UTF8Encoding(true)))
 			{
-				writer.WriteLine("Valheim Portal List");
+				writer.WriteLine("Portal Atlas");
 				writer.WriteLine("Generated: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
 				writer.WriteLine("Portal prefab types: " + prefabCount);
 				writer.WriteLine("Total portals: " + rows.Count);

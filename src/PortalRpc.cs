@@ -4,12 +4,12 @@ using System.Globalization;
 using System.Text;
 using UnityEngine;
 
-namespace ValheimPortalList
+namespace PortalAtlas
 {
 	internal static class PortalRpc
 	{
-		private const string RpcRequestName = "ValheimPortalList_Refresh";
-		private const string RpcResponseName = "ValheimPortalList_RefreshOut";
+		private const string RpcRequestName = "PortalAtlas_Refresh";
+		private const string RpcResponseName = "PortalAtlas_RefreshOut";
 
 		private static bool _registered;
 		internal static Action<List<PortalRow>> OnWorldListReceived;
@@ -30,18 +30,18 @@ namespace ValheimPortalList
 				ZRoutedRpc.instance.Register(RpcRequestName, new Action<long>(RPC_Request));
 				ZRoutedRpc.instance.Register<string>(RpcResponseName, RPC_Response);
 				_registered = true;
-				ValheimPortalListPlugin.ModLogger.LogInfo("Registered portal Refresh RPCs.");
+				PortalAtlasPlugin.ModLogger.LogInfo("Registered portal Refresh RPCs.");
 			}
 			catch (Exception ex)
 			{
-				ValheimPortalListPlugin.ModLogger.LogDebug($"RPC registration deferred: {ex.Message}");
+				PortalAtlasPlugin.ModLogger.LogDebug($"RPC registration deferred: {ex.Message}");
 			}
 		}
 
 		internal static bool RequestWorldList()
 		{
 			bool can = PortalAccess.CanRefreshWorld();
-			ValheimPortalListPlugin.Debug(
+			PortalAtlasPlugin.Debug(
 				$"RequestWorldList canRefresh={can} ({PortalAccess.DescribeRefreshAccess()}) " +
 				$"isServer={ZNet.instance != null && ZNet.instance.IsServer()}");
 
@@ -51,25 +51,25 @@ namespace ValheimPortalList
 			if (ZNet.instance != null && ZNet.instance.IsServer())
 			{
 				PortalDumpResult result = PortalScan.ScanPortals();
-				ValheimPortalListPlugin.Debug($"RequestWorldList local host scan → {result.Rows.Count} row(s)");
+				PortalAtlasPlugin.Debug($"RequestWorldList local host scan → {result.Rows.Count} row(s)");
 				OnWorldListReceived?.Invoke(result.Rows);
 				return true;
 			}
 
 			if (ZRoutedRpc.instance == null)
 			{
-				ValheimPortalListPlugin.Debug("RequestWorldList failed — ZRoutedRpc missing");
+				PortalAtlasPlugin.Debug("RequestWorldList failed — ZRoutedRpc missing");
 				return false;
 			}
 
 			long server = GetServerPeerId();
 			if (server == 0L)
 			{
-				ValheimPortalListPlugin.Debug("RequestWorldList failed — server peer id is 0");
+				PortalAtlasPlugin.Debug("RequestWorldList failed — server peer id is 0");
 				return false;
 			}
 
-			ValheimPortalListPlugin.Debug($"RequestWorldList invoking RPC → server peer {server}");
+			PortalAtlasPlugin.Debug($"RequestWorldList invoking RPC → server peer {server}");
 			ZRoutedRpc.instance.InvokeRoutedRPC(server, RpcRequestName);
 			return true;
 		}
@@ -80,11 +80,11 @@ namespace ValheimPortalList
 				return;
 
 			bool admin = PortalAccess.IsPeerAdmin(sender);
-			ValheimPortalListPlugin.Debug($"RPC_Request from {sender} admin={admin}");
+			PortalAtlasPlugin.Debug($"RPC_Request from {sender} admin={admin}");
 
 			if (!admin)
 			{
-				ValheimPortalListPlugin.ModLogger.LogWarning($"Rejected portal Refresh from non-admin {sender}");
+				PortalAtlasPlugin.ModLogger.LogWarning($"Rejected portal Refresh from non-admin {sender}");
 				ZRoutedRpc.instance.InvokeRoutedRPC(sender, RpcResponseName, "ERR:Unauthorized");
 				return;
 			}
@@ -93,21 +93,21 @@ namespace ValheimPortalList
 			{
 				PortalDumpResult result = PortalScan.ScanPortals();
 				string payload = EncodeRows(result.Rows);
-				ValheimPortalListPlugin.Debug(
+				PortalAtlasPlugin.Debug(
 					$"RPC_Request scan ok rows={result.Rows.Count} payloadChars={payload.Length}");
 				ZRoutedRpc.instance.InvokeRoutedRPC(sender, RpcResponseName, payload);
 			}
 			catch (Exception ex)
 			{
-				ValheimPortalListPlugin.ModLogger.LogError("Portal Refresh RPC failed.");
-				ValheimPortalListPlugin.ModLogger.LogError(ex);
+				PortalAtlasPlugin.ModLogger.LogError("Portal Refresh RPC failed.");
+				PortalAtlasPlugin.ModLogger.LogError(ex);
 				ZRoutedRpc.instance.InvokeRoutedRPC(sender, RpcResponseName, "ERR:ScanFailed");
 			}
 		}
 
 		private static void RPC_Response(long sender, string payload)
 		{
-			ValheimPortalListPlugin.Debug(
+			PortalAtlasPlugin.Debug(
 				$"RPC_Response from {sender} chars={(payload == null ? 0 : payload.Length)}");
 
 			if (string.IsNullOrEmpty(payload))
@@ -115,14 +115,14 @@ namespace ValheimPortalList
 
 			if (payload.StartsWith("ERR:", StringComparison.Ordinal))
 			{
-				ValheimPortalListPlugin.ModLogger.LogWarning("Portal Refresh failed: " + payload.Substring(4));
+				PortalAtlasPlugin.ModLogger.LogWarning("Portal Refresh failed: " + payload.Substring(4));
 				OnWorldListReceived?.Invoke(null);
 				return;
 			}
 
 			List<PortalRow> rows = DecodeRows(payload);
 			PortalScan.AnalyzeRelationships(rows);
-			ValheimPortalListPlugin.Debug($"RPC_Response decoded {rows.Count} row(s)");
+			PortalAtlasPlugin.Debug($"RPC_Response decoded {rows.Count} row(s)");
 			OnWorldListReceived?.Invoke(rows);
 		}
 

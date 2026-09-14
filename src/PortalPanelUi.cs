@@ -7,12 +7,12 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
-namespace ValheimPortalList
+namespace PortalAtlas
 {
 	internal static class PortalPanelUi
 	{
-		private const string PanelRootName = "ValheimPortalList_Panel";
-		private const string MapButtonName = "ValheimPortalList_MapButton";
+		private const string PanelRootName = "PortalAtlas_Panel";
+		private const string MapButtonName = "PortalAtlas_MapButton";
 		private const float PanelWidth = 440f;
 		private const float PanelHeight = 580f;
 		private const float HeaderHeight = 220f;
@@ -118,7 +118,7 @@ namespace ValheimPortalList
 						_sortByMapClick = true;
 						_sortByName = false;
 						_awaitingMapClick = false;
-						ValheimPortalListPlugin.Debug($"UI map-click origin=({world.x:0.#},{world.z:0.#})");
+						PortalAtlasPlugin.Debug($"UI map-click origin=({world.x:0.#},{world.z:0.#})");
 						RebuildList();
 						UpdateOverlay();
 						RefreshChrome();
@@ -140,7 +140,7 @@ namespace ValheimPortalList
 			if (GUIManager.IsHeadless())
 				return;
 
-			ValheimPortalListPlugin.Debug("UI Show — journal view");
+			PortalAtlasPlugin.Debug("UI Show — journal view");
 			EnsurePanel();
 			_panelOpen = true;
 			if ((Object)_panelRoot != null)
@@ -156,7 +156,7 @@ namespace ValheimPortalList
 
 		internal static void Hide()
 		{
-			ValheimPortalListPlugin.Debug("UI Hide");
+			PortalAtlasPlugin.Debug("UI Hide");
 			_panelOpen = false;
 			_awaitingMapClick = false;
 			if ((Object)_panelRoot != null)
@@ -180,7 +180,7 @@ namespace ValheimPortalList
 				_mapButtonRoot = null;
 			}
 			_rowObjects.Clear();
-			ValheimPortalListPlugin.Debug("UI DestroyUi");
+			PortalAtlasPlugin.Debug("UI DestroyUi");
 		}
 
 		internal static void OnWorldList(List<PortalRow> rows)
@@ -188,12 +188,12 @@ namespace ValheimPortalList
 			_awaitingRefresh = false;
 			if (rows == null)
 			{
-				ValheimPortalListPlugin.Debug("UI OnWorldList failed (null)");
+				PortalAtlasPlugin.Debug("UI OnWorldList failed (null)");
 				SetStatus("Refresh failed.");
 				return;
 			}
 
-			ValheimPortalListPlugin.Debug($"UI OnWorldList session rows={rows.Count} (journal untouched)");
+			PortalAtlasPlugin.Debug($"UI OnWorldList session rows={rows.Count} (journal untouched)");
 			_worldRows = rows;
 			_showingWorld = true;
 			RefreshChrome();
@@ -489,12 +489,12 @@ namespace ValheimPortalList
 			_autoPinToggle = toggleGo.GetComponent<Toggle>();
 			if ((Object)_autoPinToggle != null)
 			{
-				_autoPinToggle.isOn = ValheimPortalListPlugin.AutoPin != null && ValheimPortalListPlugin.AutoPin.Value;
+				_autoPinToggle.isOn = PortalAtlasPlugin.AutoPin != null && PortalAtlasPlugin.AutoPin.Value;
 				_autoPinToggle.onValueChanged.AddListener(v =>
 				{
-					if (ValheimPortalListPlugin.AutoPin != null)
-						ValheimPortalListPlugin.AutoPin.Value = v;
-					ValheimPortalListPlugin.Debug($"AutoPin toggle → {v}");
+					if (PortalAtlasPlugin.AutoPin != null)
+						PortalAtlasPlugin.AutoPin.Value = v;
+					PortalAtlasPlugin.Debug($"AutoPin toggle → {v}");
 				});
 			}
 
@@ -737,8 +737,8 @@ namespace ValheimPortalList
 					_sortHintText.text = "Distances measured from your position";
 			}
 
-			if ((Object)_autoPinToggle != null && ValheimPortalListPlugin.AutoPin != null)
-				_autoPinToggle.isOn = ValheimPortalListPlugin.AutoPin.Value;
+			if ((Object)_autoPinToggle != null && PortalAtlasPlugin.AutoPin != null)
+				_autoPinToggle.isOn = PortalAtlasPlugin.AutoPin.Value;
 		}
 
 		private static void UpdateOverlay()
@@ -757,7 +757,7 @@ namespace ValheimPortalList
 
 		private static void OnRefreshClicked()
 		{
-			ValheimPortalListPlugin.Debug($"UI Refresh clicked ({PortalAccess.DescribeRefreshAccess()})");
+			PortalAtlasPlugin.Debug($"UI Refresh clicked ({PortalAccess.DescribeRefreshAccess()})");
 			if (!PortalAccess.CanRefreshWorld())
 			{
 				SetStatus("Refresh requires adminlist or host+devcommands.");
@@ -778,7 +778,7 @@ namespace ValheimPortalList
 
 		private static void OnShowKnown()
 		{
-			ValheimPortalListPlugin.Debug("UI Show known (journal)");
+			PortalAtlasPlugin.Debug("UI Show known (journal)");
 			_showingWorld = false;
 			_worldRows = null;
 			ReloadJournal();
@@ -794,7 +794,7 @@ namespace ValheimPortalList
 				return;
 			}
 
-			ValheimPortalListPlugin.Debug(
+			PortalAtlasPlugin.Debug(
 				$"UI Add to journal tag='{_selected.DisplayTag}' uid={_selected.Uid} prefab={_selected.Prefab}");
 
 			if (KnownPortalCache.AddFromRow(_selected))
@@ -819,7 +819,7 @@ namespace ValheimPortalList
 			string message;
 			bool ok = PortalMapPins.TryPinPortal(_selected, out message);
 			SetStatus(message);
-			ValheimPortalListPlugin.Debug($"UI Pin selected → ok={ok} {message}");
+			PortalAtlasPlugin.Debug($"UI Pin selected → ok={ok} {message}");
 			UpdateOverlay();
 		}
 

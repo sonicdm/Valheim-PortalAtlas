@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Builds (optional) and packs Valheim Portal List for Thunderstore / r2modman.
+  Builds (optional) and packs Portal Atlas for Thunderstore / r2modman.
 
 .DESCRIPTION
   Follows Thunderstore package requirements:
@@ -12,7 +12,7 @@
     - README.md
     - icon.png          (exactly 256x256 PNG)
     - CHANGELOG.md      (optional)
-    - ValheimPortalList.dll
+    - PortalAtlas.dll
     - any other mod files
 
   Files are placed at the ZIP root (not inside a nested folder).
@@ -24,7 +24,7 @@
   Debug or Release. Default Release.
 
 .PARAMETER SkipBuild
-  Package the existing bin\<Configuration>\ValheimPortalList.dll without rebuilding.
+  Package the existing bin\<Configuration>\PortalAtlas.dll without rebuilding.
 
 .PARAMETER OutDir
   Output folder for the zip. Default: .\dist
@@ -80,7 +80,7 @@ if (-not $SkipBuild) {
     if ($LASTEXITCODE -ne 0) { throw "build.ps1 failed with exit code $LASTEXITCODE" }
 }
 
-$Dll = Join-Path $ProjectRoot "bin\$Configuration\ValheimPortalList.dll"
+$Dll = Join-Path $ProjectRoot "bin\$Configuration\PortalAtlas.dll"
 Assert-True (Test-Path -LiteralPath $Dll) "DLL not found: $Dll (build first or omit -SkipBuild)."
 
 # --- Required Thunderstore files ---
@@ -119,19 +119,19 @@ Assert-True ($manifest.version_number -match '^\d+\.\d+\.\d+$') `
     "manifest.json version_number must be Major.Minor.Patch. Got: '$($manifest.version_number)'"
 
 # Align Thunderstore version with plugin source + csproj
-$PluginSrc = Join-Path $ProjectRoot "src\ValheimPortalListPlugin.cs"
-$CsprojPath = Join-Path $ProjectRoot "ValheimPortalList.csproj"
+$PluginSrc = Join-Path $ProjectRoot "src\PortalAtlasPlugin.cs"
+$CsprojPath = Join-Path $ProjectRoot "PortalAtlas.csproj"
 Assert-True (Test-Path -LiteralPath $PluginSrc) "Missing plugin source: $PluginSrc"
 $pluginSrcRaw = Get-Content -LiteralPath $PluginSrc -Raw -Encoding UTF8
 Assert-True ($pluginSrcRaw -match 'PluginVersion\s*=\s*"(\d+\.\d+\.\d+)"') `
-    "Could not find PluginVersion in ValheimPortalList.cs"
+    "Could not find PluginVersion in PortalAtlasPlugin.cs"
 $pluginVersion = $Matches[1]
 Assert-True ($pluginVersion -eq [string]$manifest.version_number) `
     "Version mismatch: manifest.json=$($manifest.version_number) but PluginVersion=$pluginVersion"
 
 $csprojRaw = Get-Content -LiteralPath $CsprojPath -Raw -Encoding UTF8
 Assert-True ($csprojRaw -match '<Version>(\d+\.\d+\.\d+)</Version>') `
-    "Could not find <Version> in ValheimPortalList.csproj"
+    "Could not find <Version> in PortalAtlas.csproj"
 $csprojVersion = $Matches[1]
 Assert-True ($csprojVersion -eq [string]$manifest.version_number) `
     "Version mismatch: manifest.json=$($manifest.version_number) but csproj Version=$csprojVersion"
@@ -161,7 +161,7 @@ if (Test-Path -LiteralPath $Stage) {
 }
 New-Item -ItemType Directory -Force -Path $Stage | Out-Null
 
-Copy-Item -LiteralPath $Dll -Destination (Join-Path $Stage "ValheimPortalList.dll")
+Copy-Item -LiteralPath $Dll -Destination (Join-Path $Stage "PortalAtlas.dll")
 Copy-Item -LiteralPath $ManifestPath -Destination (Join-Path $Stage "manifest.json")
 Copy-Item -LiteralPath $ReadmePath -Destination (Join-Path $Stage "README.md")
 Copy-Item -LiteralPath $IconPath -Destination (Join-Path $Stage "icon.png")
@@ -187,7 +187,7 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 $zip = [System.IO.Compression.ZipFile]::OpenRead($ZipPath)
 try {
     $entries = @($zip.Entries | ForEach-Object { $_.FullName })
-    $requiredInZip = @("manifest.json", "README.md", "icon.png", "ValheimPortalList.dll")
+    $requiredInZip = @("manifest.json", "README.md", "icon.png", "PortalAtlas.dll")
     foreach ($name in $requiredInZip) {
         Assert-True ($entries -contains $name) "ZIP is missing root entry '$name'. Entries: $($entries -join ', ')"
     }
@@ -202,7 +202,7 @@ finally {
 Remove-Item -LiteralPath $Stage -Recurse -Force
 
 # Also refresh loose DLL copy in dist for convenience
-Copy-Item -LiteralPath $Dll -Destination (Join-Path $OutDir "ValheimPortalList.dll") -Force
+Copy-Item -LiteralPath $Dll -Destination (Join-Path $OutDir "PortalAtlas.dll") -Force
 
 Write-Host ""
 Write-Host "Package ready:" -ForegroundColor Green
@@ -218,4 +218,4 @@ finally {
 }
 Write-Host ""
 Write-Host "Upload at: https://thunderstore.io/c/valheim/create/package/ (team/author: SonicDM)" -ForegroundColor Cyan
-Write-Host "Or import the zip into r2modman as a local mod (installs as SonicDM-ValheimPortalList)."
+Write-Host "Or import the zip into r2modman as a local mod (installs as SonicDM-PortalAtlas)."

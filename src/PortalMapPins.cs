@@ -5,7 +5,7 @@ using System.Globalization;
 using System.Reflection;
 using UnityEngine;
 
-namespace ValheimPortalList
+namespace PortalAtlas
 {
 	/// <summary>
 	/// All pin create/remove goes through here. Manual player pins are never touched:
@@ -27,7 +27,7 @@ namespace ValheimPortalList
 			int count = OverlayPins.Count;
 			RemoveTrackedPins(OverlayPins);
 			if (count > 0)
-				ValheimPortalListPlugin.Debug($"ClearOverlay removed {count} temp pin(s)");
+				PortalAtlasPlugin.Debug($"ClearOverlay removed {count} temp pin(s)");
 		}
 
 		internal static void ShowOverlay(IEnumerable<PortalRow> rows)
@@ -40,7 +40,7 @@ namespace ValheimPortalList
 			Player player = Player.m_localPlayer;
 			if ((UnityEngine.Object)map == null || (UnityEngine.Object)player == null)
 			{
-				ValheimPortalListPlugin.Debug("ShowOverlay skipped — minimap/player missing");
+				PortalAtlasPlugin.Debug("ShowOverlay skipped — minimap/player missing");
 				return;
 			}
 
@@ -68,7 +68,7 @@ namespace ValheimPortalList
 
 			ForceUpdatePins(map);
 			RetintOverlay();
-			ValheimPortalListPlugin.Debug($"ShowOverlay placed {added} temp pin(s), skipped {skipped} (permanent already there)");
+			PortalAtlasPlugin.Debug($"ShowOverlay placed {added} temp pin(s), skipped {skipped} (permanent already there)");
 		}
 
 		internal static void RetintOverlay()
@@ -86,7 +86,7 @@ namespace ValheimPortalList
 			Player player = Player.m_localPlayer;
 			if ((UnityEngine.Object)map == null || (UnityEngine.Object)player == null)
 			{
-				ValheimPortalListPlugin.Debug(
+				PortalAtlasPlugin.Debug(
 					$"Auto-pin deferred — minimap/player missing for tag='{entry.Tag}'");
 				QueuePendingAutoPin(entry);
 				return;
@@ -98,7 +98,7 @@ namespace ValheimPortalList
 			// Skip if a permanent pin (manual or our saved auto-pin) already covers this portal.
 			if (HasPermanentPinNamedNear(display, pos, 1.5f))
 			{
-				ValheimPortalListPlugin.Debug(
+				PortalAtlasPlugin.Debug(
 					$"Auto-pin skipped — permanent pin '{display}' already near ({pos.x:0.#},{pos.z:0.#})");
 				return;
 			}
@@ -111,12 +111,12 @@ namespace ValheimPortalList
 			{
 				SavedPins.Add(pin);
 				ForceUpdatePins(map);
-				ValheimPortalListPlugin.Debug(
+				PortalAtlasPlugin.Debug(
 					$"Auto-pin placed tag='{display}' prefab={entry.Prefab} at ({pos.x:0.#},{pos.z:0.#})");
 			}
 			else
 			{
-				ValheimPortalListPlugin.Debug(
+				PortalAtlasPlugin.Debug(
 					$"Auto-pin failed — AddPin returned null for tag='{display}'");
 				QueuePendingAutoPin(entry);
 			}
@@ -193,7 +193,7 @@ namespace ValheimPortalList
 			SavedPins.Add(pin);
 			ForceUpdatePins(map);
 			message = $"Pinned {display}.";
-			ValheimPortalListPlugin.Debug($"TryPinPortal ok tag='{display}' at ({pos.x:0.#},{pos.z:0.#})");
+			PortalAtlasPlugin.Debug($"TryPinPortal ok tag='{display}' at ({pos.x:0.#},{pos.z:0.#})");
 			return true;
 		}
 
@@ -206,7 +206,7 @@ namespace ValheimPortalList
 			int tracked = SavedPins.Count;
 			RemoveTrackedPins(SavedPins);
 			RemoveAllOwnedSavedPinsFromMap();
-			ValheimPortalListPlugin.Debug($"ClearSavedPins trackedRefs={tracked} (manual pins untouched)");
+			PortalAtlasPlugin.Debug($"ClearSavedPins trackedRefs={tracked} (manual pins untouched)");
 		}
 
 		/// <summary>
@@ -231,7 +231,7 @@ namespace ValheimPortalList
 			{
 			}
 
-			ValheimPortalListPlugin.Debug($"Ping + center map at ({position.x:0.#},{position.z:0.#})");
+			PortalAtlasPlugin.Debug($"Ping + center map at ({position.x:0.#},{position.z:0.#})");
 		}
 
 		/// <summary>Move the large map view to a world position (no ping).</summary>
