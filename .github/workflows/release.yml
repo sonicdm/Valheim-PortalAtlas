@@ -1,0 +1,71 @@
+# GitHub-hosted runners cannot build this mod (Valheim Managed DLLs are local-only).
+# Release zips are produced by .\release.ps1 on a machine with Valheim refs.
+#
+# This workflow only ensures a GitHub Release exists for tags vX.Y.Z and fills
+# the description from CHANGELOG.md. The Thunderstore zip is attached by release.ps1.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release-notes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract changelog for tag
+        id: changelog
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Tag must be vMAJOR.MINOR.PATCH (got $GITHUB_REF_NAME)" >&2
+            exit 1
+          fi
+
+          MANIFEST_VERSION=$(python3 -c "import json; print(json.load(open('manifest.json'))['version_number'])")
+          if [[ "$MANIFEST_VERSION" != "$VERSION" ]]; then
+            echo "Tag version $VERSION does not match manifest.json version_number $MANIFEST_VERSION" >&2
+            exit 1
+          fi
+
+          python3 <<'PY'
+          import pathlib, os, re, sys
+          version = os.environ.get("VERSION", "").lstrip("v")
+          if not re.fullmatch(r"\d+\.\d+\.\d+", version):
+              sys.exit(f"Invalid version derived from tag: {version!r}")
+          text = pathlib.Path("CHANGELOG.md").read_text(encoding="utf-8")
+          pattern = rf"(?ms)^## {re.escape(version)}\s*\n(.*?)(?=^##\s+\d+\.\d+\.\d+\s*$|\Z)"
+          m = re.search(pattern, text)
+          if not m:
+              sys.exit(f"CHANGELOG.md missing section ## {version}")
+          body = (
+              f"## {version}\n{m.group(1).strip()}\n\n"
+              "---\n"
+              "Thunderstore zip is attached by local `release.ps1` "
+              "(Valheim refs are not on GitHub-hosted runners).\n"
+          )
+          pathlib.Path("release_notes.md").write_text(body, encoding="utf-8")
+          print(body)
+          PY
+        env:
+          VERSION: ${{ github.ref_name }}
+
+      - name: Publish / update GitHub Release notes
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ValheimPortalList ${{ github.ref_name }}
+          body_file: release_notes.md
+          draft: false
+          prerelease: false
+          fail_on_unmatched_files: false

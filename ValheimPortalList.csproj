@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <NoWarn>$(NoWarn);CS8632</NoWarn>
+    <AssemblyName>ValheimPortalList</AssemblyName>
+    <RootNamespace>ValheimPortalList</RootNamespace>
+    <Version>1.2.2</Version>
+    <AssemblyVersion>1.2.2.0</AssemblyVersion>
+    <FileVersion>1.2.2.0</FileVersion>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <ValheimLibDir Condition="'$(ValheimLibDir)' == ''">E:\Scripts\Valheim Mods\Reqs</ValheimLibDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="$(ValheimLibDir)\*.dll">
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <Target Name="ValidateValheimLibDir" BeforeTargets="ResolveReferences">
+    <Error Condition="!Exists('$(ValheimLibDir)')" Text="Valheim library directory not found: $(ValheimLibDir)" />
+  </Target>
+</Project>

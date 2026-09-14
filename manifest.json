@@ -1,0 +1,11 @@
+{
+  "name": "ValheimPortalList",
+  "author": "SonicDM",
+  "version_number": "1.2.2",
+  "website_url": "https://github.com/sonicdm/ValheimPortalList",
+  "description": "Known-portal journal and map panel. Approach to record portals; optional Auto-pin; admin Refresh for the full world list. Vanilla pairing stays.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2202",
+    "ValheimModding-Jotunn-2.23.0"
+  ]
+}
