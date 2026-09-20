@@ -4,14 +4,14 @@ Personal portal atlas for Valheim. Record gates as you find them; admins can Ref
 
 | | |
 | --- | --- |
-| Version | 1.2.3 |
+| Version | 1.2.4 |
 | GUID | `sonicdm.valheimportallist` |
 | Dependencies | BepInExPack Valheim, Jötunn |
 
 ## How to use
 
 1. Approach, interact with, or travel through a portal — it is saved to your local journal.
-2. Open the large map (`M`) and click **Portals**, or press the configured toggle key (default `P`) / run `portals`.
+2. Open the large map (`M`) and click **Portals**, or run `portals`.
 3. Search tags, sort by name, distance to you, or a map click (nearest to that point).
 4. Connection status shows **connected**, **one-way**, **unconnected**, or **missing**.
 5. **Pin** saves a permanent map pin for the selected portal. **Ping** / **Ping exit** center the map and ping that portal or its paired exit (only one player ping can be active at a time). Temporary orange overlay markers appear while the panel is open (not saved).

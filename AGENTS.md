@@ -51,7 +51,7 @@ After code changes, verify with `.\build.ps1` before finishing. Prefer **build o
 
 ## Version bumps
 
-Do not bump `1.2.3` until the user asks to ship. When shipping, keep these aligned: `PluginVersion`, csproj `<Version>`, `manifest.json` `version_number`, README Version row, `CHANGELOG.md` `## X.Y.Z`.
+Do not bump `1.2.4` until the user asks to ship. When shipping, keep these aligned: `PluginVersion`, csproj `<Version>`, `manifest.json` `version_number`, README Version row, `CHANGELOG.md` `## X.Y.Z`.
 
 ## Install
 

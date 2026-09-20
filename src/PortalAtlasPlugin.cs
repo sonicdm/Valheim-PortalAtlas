@@ -5,7 +5,6 @@ using BepInEx.Logging;
 using HarmonyLib;
 using Jotunn.Managers;
 using Jotunn.Utils;
-using UnityEngine;
 
 namespace PortalAtlas
 {
@@ -16,12 +15,11 @@ namespace PortalAtlas
 	{
 		public const string PluginGuid = "sonicdm.valheimportallist";
 		public const string PluginName = "Portal Atlas";
-		public const string PluginVersion = "1.2.3";
+		public const string PluginVersion = "1.2.4";
 
 		internal static ManualLogSource ModLogger;
 		internal static ConfigEntry<bool> AutoPin;
 		internal static ConfigEntry<float> ApproachRangeMeters;
-		internal static ConfigEntry<KeyCode> ToggleKey;
 		internal static ConfigEntry<bool> DebugLogging;
 
 		internal static bool DebugEnabled => DebugLogging != null && DebugLogging.Value;
@@ -42,8 +40,6 @@ namespace PortalAtlas
 				new ConfigDescription(
 					"How close you must be (meters) for a loaded portal to be recorded in the journal (and auto-pinned if AutoPinOnApproach is on).",
 					new AcceptableValueRange<float>(1f, 50f)));
-			ToggleKey = Config.Bind("UI", "ToggleKey", KeyCode.P,
-				"Key to toggle the Portals panel (opens the large map when needed).");
 
 			_harmony = new Harmony(PluginGuid);
 			try
@@ -91,14 +87,6 @@ namespace PortalAtlas
 			if (PortalMapPins.HasPendingAutoPins)
 				PortalMapPins.TickPendingAutoPins();
 			PortalPanelUi.Tick();
-
-			if (ToggleKey != null && Input.GetKeyDown(ToggleKey.Value) && !IsHotkeyBlocked())
-			{
-				Debug($"ToggleKey {ToggleKey.Value} — panel wasOpen={PortalPanelUi.IsOpen}");
-				if (!PortalPanelUi.IsOpen)
-					PortalMapPins.OpenLargeMap();
-				PortalPanelUi.Toggle();
-			}
 		}
 
 		private void OnDestroy()
@@ -165,45 +153,6 @@ namespace PortalAtlas
 			catch
 			{
 			}
-		}
-
-		/// <summary>
-		/// Ignore the toggle key while typing in chat, console, rename prompts, or our filter box.
-		/// </summary>
-		private static bool IsHotkeyBlocked()
-		{
-			try
-			{
-				if (TextInput.IsVisible())
-					return true;
-			}
-			catch
-			{
-			}
-
-			try
-			{
-				Chat chat = Chat.instance;
-				if ((UnityEngine.Object)chat != null && (chat.HasFocus() || chat.IsChatDialogWindowVisible()))
-					return true;
-			}
-			catch
-			{
-			}
-
-			try
-			{
-				if (Console.IsVisible())
-					return true;
-			}
-			catch
-			{
-			}
-
-			if (PortalPanelUi.IsFilterFocused)
-				return true;
-
-			return false;
 		}
 	}
 }

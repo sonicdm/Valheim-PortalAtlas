@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.4
+
+- Removed the configurable toggle key (default `P`). Open the panel from the large map **Portals** button or the `portals` command.
+
 ## 1.2.3
 
 - Renamed to **Portal Atlas** (Thunderstore `PortalAtlas`, GitHub `Valheim-PortalAtlas`).

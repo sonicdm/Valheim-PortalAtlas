@@ -932,10 +932,8 @@ namespace PortalAtlas
 				_statusText.text = text;
 		}
 
-		internal static bool IsFilterFocused =>
+		private static bool FilterFocused =>
 			(Object)_filterInput != null && _filterInput.isFocused;
-
-		private static bool FilterFocused => IsFilterFocused;
 
 		private static void SyncBlockInput()
 		{
