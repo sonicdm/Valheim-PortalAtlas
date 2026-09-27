@@ -50,9 +50,18 @@ namespace PortalAtlas
 
 			if (ZNet.instance != null && ZNet.instance.IsServer())
 			{
-				PortalDumpResult result = PortalScan.ScanPortals();
-				PortalAtlasPlugin.Debug($"RequestWorldList local host scan → {result.Rows.Count} row(s)");
-				OnWorldListReceived?.Invoke(result.Rows);
+				PortalAtlasPlugin.Debug("RequestWorldList local host scan (async)");
+				PortalScan.BeginScan(result =>
+				{
+					if (result == null || result.Rows == null)
+					{
+						OnWorldListReceived?.Invoke(null);
+						return;
+					}
+
+					PortalAtlasPlugin.Debug($"RequestWorldList local host scan → {result.Rows.Count} row(s)");
+					OnWorldListReceived?.Invoke(result.Rows);
+				});
 				return true;
 			}
 
@@ -89,20 +98,32 @@ namespace PortalAtlas
 				return;
 			}
 
-			try
+			long peer = sender;
+			PortalScan.BeginScan(result =>
 			{
-				PortalDumpResult result = PortalScan.ScanPortals();
-				string payload = EncodeRows(result.Rows);
-				PortalAtlasPlugin.Debug(
-					$"RPC_Request scan ok rows={result.Rows.Count} payloadChars={payload.Length}");
-				ZRoutedRpc.instance.InvokeRoutedRPC(sender, RpcResponseName, payload);
-			}
-			catch (Exception ex)
-			{
-				PortalAtlasPlugin.ModLogger.LogError("Portal Refresh RPC failed.");
-				PortalAtlasPlugin.ModLogger.LogError(ex);
-				ZRoutedRpc.instance.InvokeRoutedRPC(sender, RpcResponseName, "ERR:ScanFailed");
-			}
+				if (ZRoutedRpc.instance == null)
+					return;
+
+				try
+				{
+					if (result == null || result.Rows == null)
+					{
+						ZRoutedRpc.instance.InvokeRoutedRPC(peer, RpcResponseName, "ERR:ScanFailed");
+						return;
+					}
+
+					string payload = EncodeRows(result.Rows);
+					PortalAtlasPlugin.Debug(
+						$"RPC_Request scan ok rows={result.Rows.Count} payloadChars={payload.Length}");
+					ZRoutedRpc.instance.InvokeRoutedRPC(peer, RpcResponseName, payload);
+				}
+				catch (Exception ex)
+				{
+					PortalAtlasPlugin.ModLogger.LogError("Portal Refresh RPC failed.");
+					PortalAtlasPlugin.ModLogger.LogError(ex);
+					ZRoutedRpc.instance.InvokeRoutedRPC(peer, RpcResponseName, "ERR:ScanFailed");
+				}
+			});
 		}
 
 		private static void RPC_Response(long sender, string payload)

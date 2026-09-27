@@ -13,6 +13,10 @@ Valheim **BepInEx** mod: personal portal atlas + map panel. Vanilla tag pairing 
 | Source | `src/` |
 | GitHub | https://github.com/sonicdm/Valheim-PortalAtlas |
 
+Dedicated **Refresh world** is **Server Devcommands only** on the admin client (`PermissionManager.IsAdmin`). Do not add vanilla / Jötunn / `devcommands` fallbacks for dedicated admin. Listen host uses `ZNet.IsServer()` and does not need Server Devcommands.
+
+**Jötunn:** required dependency (client and dedicated). Skip UI with `GUIManager.IsHeadless()` on the server — do not strip the Jötunn assembly reference. Keep `ValheimModding-Jotunn-…` in `manifest.json`. Docker/dedicated: install Portal Atlas **and** Jötunn (normal Thunderstore / Gale install).
+
 ## Product rules
 
 - Panel opens on the **known-portal journal**, never an automatic world dump.
@@ -32,11 +36,24 @@ UX (Jötunn):
 
 ## Valheim references (local only)
 
+Build against the flattened folder:
+
 ```text
 E:\Scripts\Valheim Mods\Reqs
 ```
 
 Override with `-LibDir` on `build.ps1` / `package.ps1` / `release.ps1`.
+
+**Newest dependency source (Gale Default profile):** when refreshing refs, prefer copying from:
+
+```text
+C:\Users\Allan\AppData\Roaming\com.kesomannen.gale\valheim\profiles\Default\BepInEx\
+  core\          → BepInEx.dll, 0Harmony.dll
+  plugins\ValheimModding-Jotunn\Jotunn.dll
+  plugins\JereKuusela-Server_devcommands\ServerDevcommands.dll
+```
+
+Game / Unity assemblies still come from the Steam Valheim `valheim_Data\Managed` folder into `Reqs` (Gale plugins alone are not enough to compile).
 
 - Never commit those DLLs or the Reqs folder.
 - GitHub Actions only refreshes release notes from `CHANGELOG.md` on tag push.
@@ -51,7 +68,7 @@ After code changes, verify with `.\build.ps1` before finishing. Prefer **build o
 
 ## Version bumps
 
-Do not bump `1.2.4` until the user asks to ship. When shipping, keep these aligned: `PluginVersion`, csproj `<Version>`, `manifest.json` `version_number`, README Version row, `CHANGELOG.md` `## X.Y.Z`.
+Do not bump `1.2.5` until the user asks to ship. When shipping, keep these aligned: `PluginVersion`, csproj `<Version>`, `manifest.json` `version_number`, README Version row, `CHANGELOG.md` `## X.Y.Z`.
 
 ## Install
 

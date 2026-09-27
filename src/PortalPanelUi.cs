@@ -64,6 +64,12 @@ namespace PortalAtlas
 			EnsureMapButton();
 		}
 
+		internal static void OnAdminStatusChanged()
+		{
+			if (_panelOpen)
+				RefreshChrome();
+		}
+
 		internal static void Tick()
 		{
 			if (!_guiReady && GUIManager.Instance != null)
@@ -93,10 +99,11 @@ namespace PortalAtlas
 			{
 				TryScrollListWithWheel();
 
-				// Admin sync can arrive after login; show Refresh once PlayerIsAdmin flips true.
+				// Server Devcommands admin can arrive after spawn; show Refresh when it flips true.
 				bool canRefresh = PortalAccess.CanRefreshWorld();
 				if (canRefresh != _lastCanRefresh)
 				{
+					PortalAtlasPlugin.Debug($"Refresh access changed: {canRefresh} ({PortalAccess.DescribeRefreshAccess()})");
 					_lastCanRefresh = canRefresh;
 					RefreshChrome();
 				}
@@ -140,9 +147,11 @@ namespace PortalAtlas
 			if (GUIManager.IsHeadless())
 				return;
 
-			PortalAtlasPlugin.Debug("UI Show — journal view");
+			PortalAtlasPlugin.Debug($"UI Show — journal view ({PortalAccess.DescribeRefreshAccess()})");
 			EnsurePanel();
 			_panelOpen = true;
+			// Sync before Tick runs so a stale "map was open" flag cannot Hide on the next frame.
+			_mapWasOpen = PortalMapPins.IsLargeMapOpen();
 			if ((Object)_panelRoot != null)
 				_panelRoot.SetActive(true);
 
@@ -760,7 +769,7 @@ namespace PortalAtlas
 			PortalAtlasPlugin.Debug($"UI Refresh clicked ({PortalAccess.DescribeRefreshAccess()})");
 			if (!PortalAccess.CanRefreshWorld())
 			{
-				SetStatus("Refresh requires adminlist or host+devcommands.");
+				SetStatus("Refresh requires Server Devcommands admin, or hosting the world.");
 				return;
 			}
 
@@ -771,9 +780,6 @@ namespace PortalAtlas
 				_awaitingRefresh = false;
 				SetStatus("Could not refresh (no server RPC).");
 			}
-
-			if (ZNet.instance != null && ZNet.instance.IsServer())
-				_awaitingRefresh = false;
 		}
 
 		private static void OnShowKnown()

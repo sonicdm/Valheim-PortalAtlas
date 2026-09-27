@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Reflection;
@@ -12,6 +13,9 @@ namespace PortalAtlas
 {
 	internal static class PortalScan
 	{
+		/// <summary>Max main-thread work per frame during Refresh / dump (keeps netcode alive).</summary>
+		private const long ScanFrameBudgetMs = 2;
+
 		internal static ConfigEntry<float> DumpDelaySeconds;
 		internal static ConfigEntry<string> OutputFileName;
 		internal static ConfigEntry<bool> WriteTextReport;
@@ -19,6 +23,9 @@ namespace PortalAtlas
 
 		private static bool _dumped;
 		private static float _readySince = -1f;
+		private static bool _scanRunning;
+		private static readonly List<Action<PortalDumpResult>> _scanCompleters = new List<Action<PortalDumpResult>>();
+		private static Coroutine _scanCoroutine;
 
 		internal static void BindConfig(ConfigFile config)
 		{
@@ -60,17 +67,21 @@ namespace PortalAtlas
 			if (Time.realtimeSinceStartup - _readySince < Math.Max(0f, DumpDelaySeconds.Value))
 				return;
 
-			try
+			_dumped = true;
+			BeginScan(result =>
 			{
-				DumpPortals();
-				_dumped = true;
-			}
-			catch (Exception ex)
-			{
-				PortalAtlasPlugin.ModLogger.LogError("Portal scan failed. Will retry in 10 seconds.");
-				PortalAtlasPlugin.ModLogger.LogError(ex);
-				_readySince = Time.realtimeSinceStartup + 10f - Math.Max(0f, DumpDelaySeconds.Value);
-			}
+				try
+				{
+					WriteDumpFiles(result);
+				}
+				catch (Exception ex)
+				{
+					PortalAtlasPlugin.ModLogger.LogError("Portal CSV dump failed after scan.");
+					PortalAtlasPlugin.ModLogger.LogError(ex);
+					_dumped = false;
+					_readySince = Time.realtimeSinceStartup + 10f - Math.Max(0f, DumpDelaySeconds.Value);
+				}
+			});
 		}
 
 		internal static void ResetDumpState()
@@ -79,63 +90,232 @@ namespace PortalAtlas
 			_readySince = -1f;
 		}
 
+		/// <summary>
+		/// Time-sliced scan on the Unity main thread (ZDO APIs are not thread-safe).
+		/// Yields every ~2ms so dedicated net/handshake keep running during Refresh.
+		/// </summary>
+		internal static void BeginScan(Action<PortalDumpResult> onComplete)
+		{
+			if (onComplete != null)
+				_scanCompleters.Add(onComplete);
+
+			if (_scanRunning)
+				return;
+
+			PortalAtlasPlugin host = PortalAtlasPlugin.Instance;
+			if (host == null)
+			{
+				PortalDumpResult sync = ScanPortals();
+				FinishScanCallbacks(sync);
+				return;
+			}
+
+			_scanRunning = true;
+			_scanCoroutine = host.StartCoroutine(ScanPortalsCoroutine());
+		}
+
+		internal static bool IsScanRunning => _scanRunning;
+
+		/// <summary>Synchronous full scan — prefer <see cref="BeginScan"/> for Refresh / dump.</summary>
 		internal static PortalDumpResult ScanPortals()
 		{
-			List<PortalRow> rows = new List<PortalRow>();
-			List<GameObject> portalPrefabs = FindPortalPrefabs();
-
-			PortalAtlasPlugin.ModLogger.LogInfo(
-				$"Found {portalPrefabs.Count} registered prefab(s) containing TeleportWorld.");
-
-			foreach (GameObject prefab in portalPrefabs)
+			List<ZDO> zdos = CollectPortalZdos();
+			List<PortalRow> rows = new List<PortalRow>(zdos.Count);
+			foreach (ZDO zdo in zdos)
 			{
-				if ((UnityEngine.Object)prefab == null)
-					continue;
+				PortalRow row = BuildRow(zdo);
+				if (row != null)
+					rows.Add(row);
+			}
 
-				List<ZDO> zdos = GetZDOsWithPrefab(prefab.name);
-				PortalAtlasPlugin.ModLogger.LogInfo($"{prefab.name}: {zdos.Count} portal ZDO(s)");
+			FinalizeRows(rows);
+			int prefabCount = CountDistinctPrefabs(rows);
+			if (PortalAtlasPlugin.DebugEnabled)
+				LogScanDebug(rows, prefabCount);
 
-				foreach (ZDO zdo in zdos)
+			return new PortalDumpResult
+			{
+				Rows = rows,
+				PortalPrefabCount = prefabCount
+			};
+		}
+
+		private static IEnumerator ScanPortalsCoroutine()
+		{
+			PortalDumpResult result = null;
+			List<ZDO> zdos = null;
+			Exception collectError = null;
+			try
+			{
+				zdos = CollectPortalZdos();
+			}
+			catch (Exception ex)
+			{
+				collectError = ex;
+			}
+
+			if (collectError != null)
+			{
+				PortalAtlasPlugin.ModLogger.LogError("Portal scan failed.");
+				PortalAtlasPlugin.ModLogger.LogError(collectError);
+				_scanRunning = false;
+				_scanCoroutine = null;
+				FinishScanCallbacks(null);
+				yield break;
+			}
+
+			PortalAtlasPlugin.ModLogger.LogInfo($"Portal scan: {zdos.Count} ZDO(s) (time-sliced).");
+
+			List<PortalRow> rows = new List<PortalRow>(zdos.Count);
+			Stopwatch frame = Stopwatch.StartNew();
+			for (int i = 0; i < zdos.Count; i++)
+			{
+				try
 				{
-					if (zdo == null || !zdo.IsValid())
-						continue;
+					PortalRow row = BuildRow(zdos[i]);
+					if (row != null)
+						rows.Add(row);
+				}
+				catch (Exception ex)
+				{
+					PortalAtlasPlugin.Debug($"BuildRow failed: {ex.Message}");
+				}
 
-					Vector3 pos = zdo.GetPosition();
-					string tag = SafeGetString(zdo, "tag");
-					// Modern Valheim links portals via ZDO connections (ConnectionType.Portal),
-					// not the legacy string key "target". HaveTarget/TargetFound use the same API.
-					ZDOID targetId = GetPortalConnectionId(zdo);
-					ZDO target = null;
-
-					try
-					{
-						if (!targetId.IsNone())
-							target = ZDOMan.instance.GetZDO(targetId);
-					}
-					catch
-					{
-					}
-
-					Vector3? targetPos = target != null && target.IsValid() ? (Vector3?)target.GetPosition() : null;
-					bool hasLink = !targetId.IsNone();
-
-					rows.Add(new PortalRow
-					{
-						Prefab = prefab.name,
-						Tag = tag,
-						Uid = zdo.m_uid.ToString(),
-						X = pos.x,
-						Y = pos.y,
-						Z = pos.z,
-						TargetUid = targetId.ToString(),
-						Connected = hasLink,
-						TargetX = targetPos?.x,
-						TargetY = targetPos?.y,
-						TargetZ = targetPos?.z
-					});
+				if (frame.ElapsedMilliseconds >= ScanFrameBudgetMs)
+				{
+					yield return null;
+					frame.Restart();
 				}
 			}
 
+			yield return null;
+
+			try
+			{
+				FinalizeRows(rows);
+				int prefabCount = CountDistinctPrefabs(rows);
+				if (PortalAtlasPlugin.DebugEnabled)
+					LogScanDebug(rows, prefabCount);
+
+				result = new PortalDumpResult
+				{
+					Rows = rows,
+					PortalPrefabCount = prefabCount
+				};
+			}
+			catch (Exception ex)
+			{
+				PortalAtlasPlugin.ModLogger.LogError("Portal scan finalize failed.");
+				PortalAtlasPlugin.ModLogger.LogError(ex);
+				result = null;
+			}
+
+			_scanRunning = false;
+			_scanCoroutine = null;
+			FinishScanCallbacks(result);
+		}
+
+		private static void FinishScanCallbacks(PortalDumpResult result)
+		{
+			List<Action<PortalDumpResult>> completers = new List<Action<PortalDumpResult>>(_scanCompleters);
+			_scanCompleters.Clear();
+			foreach (Action<PortalDumpResult> cb in completers)
+			{
+				try
+				{
+					cb?.Invoke(result);
+				}
+				catch (Exception ex)
+				{
+					PortalAtlasPlugin.ModLogger.LogError("Portal scan completion callback failed.");
+					PortalAtlasPlugin.ModLogger.LogError(ex);
+				}
+			}
+		}
+
+		private static List<ZDO> CollectPortalZdos()
+		{
+			List<ZDO> result = new List<ZDO>();
+			if (ZDOMan.instance == null)
+				return result;
+
+			try
+			{
+				List<ZDO> portals = ZDOMan.instance.GetPortalList();
+				if (portals != null && portals.Count > 0)
+				{
+					HashSet<string> seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+					foreach (ZDO zdo in portals)
+					{
+						if (zdo == null || !zdo.IsValid())
+							continue;
+						if (!seen.Add(zdo.m_uid.ToString()))
+							continue;
+						result.Add(zdo);
+					}
+
+					return result;
+				}
+			}
+			catch (Exception ex)
+			{
+				PortalAtlasPlugin.Debug($"GetPortalList failed, falling back: {ex.Message}");
+			}
+
+			// Narrow fallback only — never walk the full ZDOMan save clone.
+			foreach (string prefabName in new[] { "portal_wood", "portal_stone" })
+			{
+				foreach (ZDO zdo in GetZDOsWithPrefab(prefabName))
+				{
+					if (zdo == null || !zdo.IsValid())
+						continue;
+					result.Add(zdo);
+				}
+			}
+
+			return result;
+		}
+
+		private static PortalRow BuildRow(ZDO zdo)
+		{
+			if (zdo == null || !zdo.IsValid())
+				return null;
+
+			Vector3 pos = zdo.GetPosition();
+			string tag = SafeGetString(zdo, "tag");
+			ZDOID targetId = GetPortalConnectionId(zdo);
+			ZDO target = null;
+
+			try
+			{
+				if (!targetId.IsNone())
+					target = ZDOMan.instance.GetZDO(targetId);
+			}
+			catch
+			{
+			}
+
+			Vector3? targetPos = target != null && target.IsValid() ? (Vector3?)target.GetPosition() : null;
+			bool hasLink = !targetId.IsNone();
+
+			return new PortalRow
+			{
+				Prefab = ResolvePrefabName(zdo),
+				Tag = tag,
+				Uid = zdo.m_uid.ToString(),
+				X = pos.x,
+				Y = pos.y,
+				Z = pos.z,
+				TargetUid = targetId.ToString(),
+				Connected = hasLink,
+				TargetX = targetPos?.x,
+				TargetY = targetPos?.y,
+				TargetZ = targetPos?.z
+			};
+		}
+
+		private static void FinalizeRows(List<PortalRow> rows)
+		{
 			rows.Sort((a, b) =>
 			{
 				int tagCompare = string.Compare(a.Tag, b.Tag, StringComparison.OrdinalIgnoreCase);
@@ -159,15 +339,51 @@ namespace PortalAtlas
 				row.SameTagCount = tagCounts[row.Tag ?? string.Empty];
 
 			AnalyzeRelationships(rows);
+		}
 
-			if (PortalAtlasPlugin.DebugEnabled)
-				LogScanDebug(rows, portalPrefabs.Count);
-
-			return new PortalDumpResult
+		private static int CountDistinctPrefabs(List<PortalRow> rows)
+		{
+			HashSet<string> names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+			foreach (PortalRow row in rows)
 			{
-				Rows = rows,
-				PortalPrefabCount = portalPrefabs.Count
-			};
+				if (!string.IsNullOrEmpty(row.Prefab))
+					names.Add(row.Prefab);
+			}
+			return names.Count;
+		}
+
+		private static string ResolvePrefabName(ZDO zdo)
+		{
+			if (zdo == null)
+				return string.Empty;
+
+			try
+			{
+				ZNetView view = ZNetScene.instance != null ? ZNetScene.instance.FindInstance(zdo) : null;
+				if ((UnityEngine.Object)view != null)
+					return view.gameObject.name.Replace("(Clone)", string.Empty).Trim();
+			}
+			catch
+			{
+			}
+
+			int hash = GetZdoPrefabHash(zdo);
+			if (hash == 0 || ZNetScene.instance == null)
+				return string.Empty;
+
+			foreach (string name in new[] { "portal_wood", "portal_stone" })
+			{
+				try
+				{
+					if (StableHash(name) == hash)
+						return name;
+				}
+				catch
+				{
+				}
+			}
+
+			return string.Empty;
 		}
 
 		private static void LogScanDebug(List<PortalRow> rows, int prefabCount)
@@ -202,8 +418,16 @@ namespace PortalAtlas
 		internal static PortalDumpResult DumpPortals()
 		{
 			PortalDumpResult result = ScanPortals();
-			List<PortalRow> rows = result.Rows;
+			WriteDumpFiles(result);
+			return result;
+		}
 
+		private static void WriteDumpFiles(PortalDumpResult result)
+		{
+			if (result == null || result.Rows == null)
+				return;
+
+			List<PortalRow> rows = result.Rows;
 			string cacheDir = PortalPaths.CacheRoot;
 			string csvPath = Path.Combine(cacheDir, PortalPaths.Sanitize(OutputFileName.Value, "PortalAtlas.csv"));
 			WriteCsv(csvPath, rows);
@@ -227,8 +451,6 @@ namespace PortalAtlas
 				PortalAtlasPlugin.ModLogger.LogInfo($"Text report: {txtPath}");
 				result.TextPath = txtPath;
 			}
-
-			return result;
 		}
 
 		internal static void AnalyzeRelationships(List<PortalRow> rows)
@@ -360,37 +582,7 @@ namespace PortalAtlas
 				}
 			}
 
-			try
-			{
-				MethodInfo getSaveClone = zdoManType.GetMethod("GetSaveClone",
-					BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
-					null, Type.EmptyTypes, null);
-
-				if (getSaveClone != null)
-				{
-					object clone = getSaveClone.Invoke(ZDOMan.instance, null);
-					AddZDOsFromCollection(result, clone, prefabHash);
-					if (result.Count > 0)
-						return result;
-				}
-			}
-			catch (Exception ex)
-			{
-				PortalAtlasPlugin.ModLogger.LogDebug($"GetSaveClone fallback failed: {ex.GetType().Name}: {ex.Message}");
-			}
-
-			foreach (FieldInfo field in zdoManType.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
-			{
-				try
-				{
-					object value = field.GetValue(ZDOMan.instance);
-					AddZDOsFromCollection(result, value, prefabHash);
-				}
-				catch
-				{
-				}
-			}
-
+			// Intentionally no GetSaveClone / full-ZDOMan walk — that stalls dedicated networking.
 			return result;
 		}
 

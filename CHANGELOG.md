@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.5
+
+- Refresh world on a **dedicated server** uses Server Devcommands on the admin **client** for the button, and **PortalAtlas.dll** on the dedicated host for the scan RPC.
+- Dedicated host needs **Jötunn** as well (standard headless skip via `GUIManager.IsHeadless()`); one DLL for client and server.
+- Refresh / host CSV scan is **time-sliced** (~2ms per frame) so the server keeps networking while scanning; uses `GetPortalList` instead of a full ZDOMan walk.
+
 ## 1.2.4
 
 - Removed the configurable toggle key (default `P`). Open the panel from the large map **Portals** button or the `portals` command.

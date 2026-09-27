@@ -6,16 +6,17 @@
     <NoWarn>$(NoWarn);CS8632</NoWarn>
     <AssemblyName>PortalAtlas</AssemblyName>
     <RootNamespace>PortalAtlas</RootNamespace>
-    <Version>1.2.4</Version>
-    <AssemblyVersion>1.2.4.0</AssemblyVersion>
-    <FileVersion>1.2.4.0</FileVersion>
+    <Version>1.2.5</Version>
+    <AssemblyVersion>1.2.5.0</AssemblyVersion>
+    <FileVersion>1.2.5.0</FileVersion>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <ValheimLibDir Condition="'$(ValheimLibDir)' == ''">E:\Scripts\Valheim Mods\Reqs</ValheimLibDir>
   </PropertyGroup>
 
   <ItemGroup>
-    <Reference Include="$(ValheimLibDir)\*.dll">
+    <!-- ServerDevcommands is soft + reflection-only; Jötunn is a normal compile dependency. -->
+    <Reference Include="$(ValheimLibDir)\*.dll" Exclude="$(ValheimLibDir)\ServerDevcommands.dll">
       <Private>false</Private>
     </Reference>
   </ItemGroup>

@@ -1,51 +1,72 @@
 # Portal Atlas
 
-Personal portal atlas for Valheim. Record gates as you find them; admins can Refresh the full world list. Vanilla tag pairing stays.
+Personal portal journal and map panel for Valheim. Record gates as you find them, sort and search them on the large map, and optionally Refresh the full world list as a dedicated admin. Vanilla tag pairing stays.
+
+![Portal Atlas panel on the large map](media/portals-panel.png)
 
 | | |
 | --- | --- |
-| Version | 1.2.4 |
+| Version | 1.2.5 |
 | GUID | `sonicdm.valheimportallist` |
-| Dependencies | BepInExPack Valheim, Jötunn |
+| Dependencies | BepInExPack Valheim, Jötunn, Server Devcommands *(dedicated Refresh)* |
+
+## Features
+
+- Opens from the large map **Portals** button or the `portals` command
+- Builds a **known-portal journal** as you approach, interact with, or travel through portals
+- Filter by tag; sort by name, distance to you, or a map click
+- Connection status: **connected**, **one-way**, **unconnected**, **missing**
+- **Pin** for a permanent map pin; **Ping** / **Ping exit** to center the map (one player ping at a time)
+- Temporary orange overlay markers while the panel is open (not saved)
+- Optional **Auto-pin when I approach** (off by default)
+- **Refresh world** for dedicated admins (session-only; never writes the journal)
 
 ## How to use
 
-1. Approach, interact with, or travel through a portal — it is saved to your local journal.
+1. Walk up to, use, or travel through a portal — it is saved to your local journal.
 2. Open the large map (`M`) and click **Portals**, or run `portals`.
-3. Search tags, sort by name, distance to you, or a map click (nearest to that point).
-4. Connection status shows **connected**, **one-way**, **unconnected**, or **missing**.
-5. **Pin** saves a permanent map pin for the selected portal. **Ping** / **Ping exit** center the map and ping that portal or its paired exit (only one player ping can be active at a time). Temporary orange overlay markers appear while the panel is open (not saved).
-6. Optional **Auto-pin when I approach** creates permanent portal pins as you walk up (off by default).
+3. Search tags and sort as needed.
+4. Select a row for details, then **Pin**, **Ping**, or **Ping exit**.
+5. Admins can **Refresh world** for a live server-wide list, then **Add to journal** on rows they want to keep. **Show known** returns to the journal.
 
-### Refresh world
+Approach range for auto-record (and Auto-pin): `Pins.ApproachRangeMeters` (default `8`).
 
-Never runs automatically when the panel opens. **Does not write your journal.**
+**Clear saved** only removes pins this mod created. Manually placed map pins are never touched.
 
-- **Dedicated admin** (`adminlist.txt`, synced via Jötunn): Refresh pulls the live server list over RPC.
-- **Offline / listen host**: Refresh scans the local world (no `devcommands` required).
-- Use **Add to journal** on a selected row if you want that portal saved.
-- **Show known** returns to the journal.
+## Refresh world (admins)
 
-Approach range for auto-record (and Auto-pin) is configurable: `Pins.ApproachRangeMeters` (default 8).
+Never runs when the panel opens. Does **not** write your journal.
 
-**Troubleshooting:** set `General.DebugLogging = true` in the mod config. Detailed `[DEBUG]` lines for journal, approach, pins, UI, refresh RPC, access checks, and world scans go to `BepInEx/LogOutput.log`.
+| Setup | What you need |
+| --- | --- |
+| Dedicated server | Portal Atlas **and Jötunn** on the server (UI is skipped headless). [Server Devcommands](https://thunderstore.io/c/valheim/p/JereKuusela/Server_devcommands/) on the **admin client and the server**, plus your id in `adminlist.txt` |
+| Offline / listen host | Portal Atlas + Jötunn — Refresh scans the local world |
 
-**Clear saved** only removes pins this mod created (private name marker). Manually placed map pins are never touched.
+Refresh is shown only when Server Devcommands reports you as admin. You do not need to enable `devcommands`.
 
-### Files
+## Install
+
+Install with **Gale / r2modman / Thunderstore** — `manifest.json` pulls **Jötunn** and **Server Devcommands**.
+
+| Role | What to install |
+| --- | --- |
+| Game client | Portal Atlas (pulls Jötunn). Server Devcommands for dedicated Refresh |
+| Dedicated server | Portal Atlas **and** Jötunn (same as any other Jötunn mod). Server Devcommands if you use admin Refresh |
+
+## Commands
+
+| Command | Purpose |
+| --- | --- |
+| `portals` | Toggle the Portals panel (opens the large map if needed) |
+| `portallist` | Export every portal to CSV under `BepInEx/cache/PortalAtlas/` (host, or dedicated admin) |
+
+## Files
 
 Under `BepInEx/cache/PortalAtlas/` (not config):
 
 - Journal JSON per world + character
 - Host CSV / tag summary / text report (startup dump and `portallist`)
 
-## Commands
+## Troubleshooting
 
-```text
-portals
-portallist
-```
-
-## Install
-
-Place the DLL (or Thunderstore zip) into your BepInEx plugins via r2modman. Install on the dedicated server for admin Refresh and CSV dumps; the client journal works even if the server lacks the mod.
+Set `General.DebugLogging = true` in the mod config. Detailed `[DEBUG]` lines for journal, approach, pins, UI, refresh RPC, access checks, and world scans go to `BepInEx/LogOutput.log`.

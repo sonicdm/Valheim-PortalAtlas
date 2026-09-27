@@ -13,7 +13,7 @@
     - icon.png          (exactly 256x256 PNG)
     - CHANGELOG.md      (optional)
     - PortalAtlas.dll
-    - any other mod files
+    - any other mod files (single DLL for client and dedicated)
 
   Files are placed at the ZIP root (not inside a nested folder).
 
