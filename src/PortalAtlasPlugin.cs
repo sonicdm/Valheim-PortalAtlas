@@ -18,7 +18,7 @@ namespace PortalAtlas
 	{
 		public const string PluginGuid = "sonicdm.valheimportallist";
 		public const string PluginName = "Portal Atlas";
-		public const string PluginVersion = "1.2.5";
+		public const string PluginVersion = "1.2.6";
 
 		internal static ManualLogSource ModLogger;
 		internal static PortalAtlasPlugin Instance;
@@ -33,6 +33,7 @@ namespace PortalAtlas
 		private bool _uiEnabled;
 		private bool _subscribedGui;
 		private bool _subscribedSdc;
+		private bool _subscribedHandshake;
 
 		private void Awake()
 		{
@@ -71,6 +72,8 @@ namespace PortalAtlas
 			_subscribedGui = true;
 			ServerDevcommandsAccess.Subscribe(OnAdminStatusChanged);
 			_subscribedSdc = true;
+			PortalRpc.OnHandshakeChanged += OnHandshakeChanged;
+			_subscribedHandshake = true;
 			Logger.LogInfo($"{PluginName} {PluginVersion} loaded.");
 			Debug("DebugLogging enabled.");
 		}
@@ -85,6 +88,7 @@ namespace PortalAtlas
 		private void Update()
 		{
 			PortalRpc.TickRegister();
+			PortalRpc.TickHandshake();
 			PortalScan.TickHostAutoDump();
 
 			if (GUIManager.IsHeadless())
@@ -119,6 +123,12 @@ namespace PortalAtlas
 				_subscribedSdc = false;
 			}
 
+			if (_subscribedHandshake)
+			{
+				PortalRpc.OnHandshakeChanged -= OnHandshakeChanged;
+				_subscribedHandshake = false;
+			}
+
 			if (_uiEnabled)
 			{
 				PortalPanelUi.DestroyUi();
@@ -136,6 +146,12 @@ namespace PortalAtlas
 		private static void OnAdminStatusChanged()
 		{
 			Debug($"OnAdminStatusChanged ({PortalAccess.DescribeRefreshAccess()})");
+			PortalPanelUi.OnAdminStatusChanged();
+		}
+
+		private static void OnHandshakeChanged()
+		{
+			Debug($"OnHandshakeChanged ({PortalAccess.DescribeRefreshAccess()})");
 			PortalPanelUi.OnAdminStatusChanged();
 		}
 

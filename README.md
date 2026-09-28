@@ -1,57 +1,71 @@
 # Portal Atlas
 
-Personal portal journal and map panel for Valheim. Record gates as you find them, sort and search them on the large map, and optionally Refresh the full world list as a dedicated admin. Vanilla tag pairing stays.
+Personal portal journal and map panel for Valheim. Record gates as you find them, sort and search them on the large map, and optionally **Refresh world** for a full server-wide list if you are an admin. Vanilla tag pairing is unchanged.
 
 ![Portal Atlas panel on the large map](media/portals-panel.png)
 
 | | |
 | --- | --- |
-| Version | 1.2.5 |
+| Version | 1.2.6 |
 | GUID | `sonicdm.valheimportallist` |
-| Dependencies | BepInExPack Valheim, Jötunn, Server Devcommands *(dedicated Refresh)* |
+| Dependencies | BepInExPack Valheim, [Jötunn](https://thunderstore.io/c/valheim/p/ValheimModding/Jotunn/), [Server Devcommands](https://thunderstore.io/c/valheim/p/JereKuusela/Server_devcommands/) *(dedicated Refresh only)* |
 
-## Features
+## Requirements
 
-- Opens from the large map **Portals** button or the `portals` command
-- Builds a **known-portal journal** as you approach, interact with, or travel through portals
-- Filter by tag; sort by name, distance to you, or a map click
-- Connection status: **connected**, **one-way**, **unconnected**, **missing**
-- **Pin** for a permanent map pin; **Ping** / **Ping exit** to center the map (one player ping at a time)
-- Temporary orange overlay markers while the panel is open (not saved)
-- Optional **Auto-pin when I approach** (off by default)
-- **Refresh world** for dedicated admins (session-only; never writes the journal)
+| What you want | Game client | Dedicated server |
+| --- | --- | --- |
+| Journal + panel only | Portal Atlas + **Jötunn** | Not required |
+| **Refresh world** on a dedicated server | Portal Atlas + Jötunn + **Server Devcommands**, and your id in the server `adminlist.txt` | Portal Atlas + **Jötunn** + **Server Devcommands** |
+| Offline / listen host (you host the world) | Portal Atlas + Jötunn | — (you are the host; Refresh works locally) |
+
+Notes:
+
+- Gale / r2modman install Jötunn and Server Devcommands from `manifest.json` on the **client**.
+- The **dedicated server** must also have Portal Atlas and Jötunn (same as other Jötunn mods). Put Server Devcommands on the server if you use admin Refresh.
+- You do **not** need to turn on vanilla `devcommands` / cheats. Server Devcommands already confirms admin via `adminlist.txt`.
 
 ## How to use
 
-1. Walk up to, use, or travel through a portal — it is saved to your local journal.
-2. Open the large map (`M`) and click **Portals**, or run `portals`.
-3. Search tags and sort as needed.
-4. Select a row for details, then **Pin**, **Ping**, or **Ping exit**.
-5. Admins can **Refresh world** for a live server-wide list, then **Add to journal** on rows they want to keep. **Show known** returns to the journal.
+1. Approach, use, or travel through a portal — it is saved to your **local journal** (per world + character).
+2. Open the large map (`M`) → **Portals**, or run `portals`.
+3. Filter by tag; sort by **Name**, **To me**, or **Map click**.
+4. Select a row → **Pin**, **Ping**, or **Ping exit**.
+5. If Refresh is available: **Refresh world** loads a live server list (session only). Use **Add to journal** on rows you want to keep. **Show known** returns to the journal.
 
-Approach range for auto-record (and Auto-pin): `Pins.ApproachRangeMeters` (default `8`).
+Approach range (journal + optional auto-pin): config `Pins.ApproachRangeMeters` (default `8`).
 
 **Clear saved** only removes pins this mod created. Manually placed map pins are never touched.
 
-## Refresh world (admins)
+## Refresh world
 
-Never runs when the panel opens. Does **not** write your journal.
+Never runs automatically when the panel opens. **Never** writes your journal by itself.
 
-| Setup | What you need |
+On a dedicated server, after you join, the client **handshakes** with the host (`PortalAtlas_Hello` / `HelloAck`). Refresh is enabled only when:
+
+1. The host has Portal Atlas (handshake succeeds), and  
+2. Server Devcommands reports you as admin.
+
+The panel shows a status line under the Refresh button, for example:
+
+| Status | Meaning |
 | --- | --- |
-| Dedicated server | Portal Atlas **and Jötunn** on the server (UI is skipped headless). [Server Devcommands](https://thunderstore.io/c/valheim/p/JereKuusela/Server_devcommands/) on the **admin client and the server**, plus your id in `adminlist.txt` |
-| Offline / listen host | Portal Atlas + Jötunn — Refresh scans the local world |
+| `Refresh: ready (admin)` / `ready (server x.y.z, admin)` | Handshake OK and you are admin — button works |
+| `Refresh: ready (you are host)` | Offline / listen host — local scan |
+| `Refresh: checking server…` | Waiting for the host handshake |
+| `Refresh: server incompatible (no Portal Atlas)` | Host did not answer — install Portal Atlas (+ Jötunn) on the dedicated server |
+| `Refresh: Server Devcommands missing` | Install Server Devcommands on this client (and the server) |
+| `Refresh: not an admin` | Handshake OK, but you are not on `adminlist.txt` / not authorized yet |
+| `Refresh: scanning…` | Host is building the world list |
 
-Refresh is shown only when Server Devcommands reports you as admin. You do not need to enable `devcommands`.
+When Refresh is unavailable, the button stays visible but greyed out.
 
 ## Install
 
-Install with **Gale / r2modman / Thunderstore** — `manifest.json` pulls **Jötunn** and **Server Devcommands**.
+**Client:** install with Gale / r2modman / Thunderstore (`SonicDM-PortalAtlas`).
 
-| Role | What to install |
-| --- | --- |
-| Game client | Portal Atlas (pulls Jötunn). Server Devcommands for dedicated Refresh |
-| Dedicated server | Portal Atlas **and** Jötunn (same as any other Jötunn mod). Server Devcommands if you use admin Refresh |
+**Dedicated server:** install the same package (or drop `PortalAtlas.dll`) **and** Jötunn. Add Server Devcommands if admins should use Refresh. Restart the server after installing.
+
+Both client and server should run the **same Portal Atlas version** when using Refresh.
 
 ## Commands
 
@@ -69,4 +83,11 @@ Under `BepInEx/cache/PortalAtlas/` (not config):
 
 ## Troubleshooting
 
-Set `General.DebugLogging = true` in the mod config. Detailed `[DEBUG]` lines for journal, approach, pins, UI, refresh RPC, access checks, and world scans go to `BepInEx/LogOutput.log`.
+| Problem | Check |
+| --- | --- |
+| No Portals button / panel | Jötunn installed on the client; look for `Portal Atlas … loaded` in `BepInEx/LogOutput.log` |
+| `server incompatible` | Portal Atlas + Jötunn on the **dedicated** server; matching version; server log shows the mod loaded |
+| `not an admin` | Steam / PlayFab id in `adminlist.txt`; Server Devcommands on **client and server**; wait until it says you are authorized |
+| Refresh hangs / disconnect icon | Update to 1.2.5+ (time-sliced scan). Ensure server and client both have that build |
+
+Set `General.DebugLogging = true` in the mod config for `[DEBUG]` lines (journal, handshake, Refresh RPC, access) in `BepInEx/LogOutput.log`.

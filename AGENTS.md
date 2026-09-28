@@ -13,7 +13,7 @@ Valheim **BepInEx** mod: personal portal atlas + map panel. Vanilla tag pairing 
 | Source | `src/` |
 | GitHub | https://github.com/sonicdm/Valheim-PortalAtlas |
 
-Dedicated **Refresh world** is **Server Devcommands only** on the admin client (`PermissionManager.IsAdmin`). Do not add vanilla / Jötunn / `devcommands` fallbacks for dedicated admin. Listen host uses `ZNet.IsServer()` and does not need Server Devcommands.
+Dedicated **Refresh world** is **Server Devcommands only** on the admin client (`PermissionManager.IsAdmin`), and the dedicated host must answer the Portal Atlas connect handshake (`PortalAtlas_Hello` / `HelloAck`). Do not add vanilla / Jötunn / `devcommands` fallbacks for dedicated admin. Listen host uses `ZNet.IsServer()` and does not need Server Devcommands or the handshake.
 
 **Jötunn:** required dependency (client and dedicated). Skip UI with `GUIManager.IsHeadless()` on the server — do not strip the Jötunn assembly reference. Keep `ValheimModding-Jotunn-…` in `manifest.json`. Docker/dedicated: install Portal Atlas **and** Jötunn (normal Thunderstore / Gale install).
 
@@ -68,7 +68,7 @@ After code changes, verify with `.\build.ps1` before finishing. Prefer **build o
 
 ## Version bumps
 
-Do not bump `1.2.5` until the user asks to ship. When shipping, keep these aligned: `PluginVersion`, csproj `<Version>`, `manifest.json` `version_number`, README Version row, `CHANGELOG.md` `## X.Y.Z`.
+Do not bump `1.2.6` until the user asks to ship. When shipping, keep these aligned: `PluginVersion`, csproj `<Version>`, `manifest.json` `version_number`, README Version row, `CHANGELOG.md` `## X.Y.Z`.
 
 ## Install
 

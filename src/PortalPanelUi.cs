@@ -15,10 +15,10 @@ namespace PortalAtlas
 		private const string MapButtonName = "PortalAtlas_MapButton";
 		private const float PanelWidth = 440f;
 		private const float PanelHeight = 580f;
-		private const float HeaderHeight = 220f;
+		private const float HeaderHeight = 236f;
 		private const float FooterHeight = 150f;
 		private const int UiFontSize = 14;
-		private const int UiLayoutVersion = 5;
+		private const int UiLayoutVersion = 6;
 
 		private static GameObject _panelRoot;
 		private static GameObject _mapButtonRoot;
@@ -34,6 +34,7 @@ namespace PortalAtlas
 		private static Button _pingExitButton;
 		private static Button _addJournalButton;
 		private static Toggle _autoPinToggle;
+		private static Text _refreshHintText;
 		private static readonly List<GameObject> _rowObjects = new List<GameObject>();
 
 		private static List<PortalRow> _journalRows = new List<PortalRow>();
@@ -55,6 +56,7 @@ namespace PortalAtlas
 		private static bool _mapWasOpen;
 		private static float _nextRetintTime;
 		private static bool _lastCanRefresh;
+		private static string _lastRefreshUxKey;
 
 		internal static bool IsOpen => _panelOpen;
 
@@ -99,12 +101,14 @@ namespace PortalAtlas
 			{
 				TryScrollListWithWheel();
 
-				// Server Devcommands admin can arrive after spawn; show Refresh when it flips true.
+				// Admin / handshake state can change after spawn; keep Refresh UX in sync.
 				bool canRefresh = PortalAccess.CanRefreshWorld();
-				if (canRefresh != _lastCanRefresh)
+				string refreshUx = PortalAccess.GetRefreshUxKey();
+				if (canRefresh != _lastCanRefresh || refreshUx != _lastRefreshUxKey)
 				{
 					PortalAtlasPlugin.Debug($"Refresh access changed: {canRefresh} ({PortalAccess.DescribeRefreshAccess()})");
 					_lastCanRefresh = canRefresh;
+					_lastRefreshUxKey = refreshUx;
 					RefreshChrome();
 				}
 			}
@@ -281,6 +285,7 @@ namespace PortalAtlas
 				_pingExitButton = null;
 				_addJournalButton = null;
 				_autoPinToggle = null;
+				_refreshHintText = null;
 				_rowObjects.Clear();
 			}
 
@@ -343,7 +348,12 @@ namespace PortalAtlas
 			_showKnownButton.onClick.AddListener(OnShowKnown);
 			GUIManager.Instance.ApplyButtonStyle(_showKnownButton, UiFontSize);
 
-			y -= 34f;
+			y -= 18f;
+			_refreshHintText = CreateLabel(wood.transform, "Refresh: …", new Vector2(0f, y), PanelWidth - 40f, 18f, false);
+			_refreshHintText.fontSize = 11;
+			_refreshHintText.color = new Color(0.78f, 0.74f, 0.64f, 1f);
+
+			y -= 28f;
 			GameObject filterGo = GUIManager.Instance.CreateInputField(
 				parent: wood.transform,
 				anchorMin: new Vector2(0.5f, 0.5f),
@@ -698,8 +708,26 @@ namespace PortalAtlas
 		{
 			bool canRefresh = PortalAccess.CanRefreshWorld();
 			_lastCanRefresh = canRefresh;
+			_lastRefreshUxKey = PortalAccess.GetRefreshUxKey();
+
 			if ((Object)_refreshButton != null)
-				_refreshButton.gameObject.SetActive(canRefresh);
+			{
+				// Always show so players can see the control; grey out with a reason below.
+				_refreshButton.gameObject.SetActive(true);
+				_refreshButton.interactable = canRefresh && !_awaitingRefresh;
+			}
+
+			if ((Object)_refreshHintText != null)
+			{
+				string hint = _awaitingRefresh
+					? "Refresh: scanning…"
+					: PortalAccess.GetRefreshUxMessage();
+				_refreshHintText.text = hint;
+				_refreshHintText.color = canRefresh || _awaitingRefresh
+					? new Color(0.72f, 0.86f, 0.62f, 1f)
+					: new Color(0.88f, 0.72f, 0.55f, 1f);
+			}
+
 			if ((Object)_showKnownButton != null)
 				_showKnownButton.gameObject.SetActive(_showingWorld);
 			if ((Object)_addJournalButton != null)
@@ -767,9 +795,15 @@ namespace PortalAtlas
 		private static void OnRefreshClicked()
 		{
 			PortalAtlasPlugin.Debug($"UI Refresh clicked ({PortalAccess.DescribeRefreshAccess()})");
+			if (!PortalRpc.HostSupportsRefresh)
+			{
+				SetStatus("Refresh: server incompatible (no Portal Atlas).");
+				return;
+			}
+
 			if (!PortalAccess.CanRefreshWorld())
 			{
-				SetStatus("Refresh requires Server Devcommands admin, or hosting the world.");
+				SetStatus(PortalAccess.GetRefreshUxMessage());
 				return;
 			}
 

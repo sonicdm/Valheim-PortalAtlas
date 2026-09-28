@@ -10,15 +10,64 @@ namespace PortalAtlas
 	{
 		private const string RpcRequestName = "PortalAtlas_Refresh";
 		private const string RpcResponseName = "PortalAtlas_RefreshOut";
+		private const string RpcHelloName = "PortalAtlas_Hello";
+		private const string RpcHelloAckName = "PortalAtlas_HelloAck";
+
+		private const float HelloRetrySeconds = 3f;
+		private const float HelloGiveUpSeconds = 45f;
 
 		private static bool _registered;
 		internal static Action<List<PortalRow>> OnWorldListReceived;
+		internal static Action OnHandshakeChanged;
+
+		private static bool _helloAcked;
+		private static string _hostVersion;
+		private static float _handshakeStarted = -1f;
+		private static float _nextHelloTime;
+		private static bool _gaveUp;
+		private static string _handshakeWorldKey;
+
+		internal static bool HostSupportsRefresh
+		{
+			get
+			{
+				if (ZNet.instance == null)
+					return false;
+				if (ZNet.instance.IsServer())
+					return true;
+				return _helloAcked;
+			}
+		}
+
+		internal static string HostVersion =>
+			ZNet.instance != null && ZNet.instance.IsServer()
+				? PortalAtlasPlugin.PluginVersion
+				: _hostVersion;
+
+		internal static string HandshakeState
+		{
+			get
+			{
+				if (ZNet.instance == null)
+					return "no-znet";
+				if (ZNet.instance.IsServer())
+					return "local-host";
+				if (_helloAcked)
+					return "acked";
+				if (_gaveUp)
+					return "timeout (host missing Portal Atlas?)";
+				if (_handshakeStarted < 0f)
+					return "idle";
+				return "waiting";
+			}
+		}
 
 		internal static void TickRegister()
 		{
 			if (ZRoutedRpc.instance == null)
 			{
 				_registered = false;
+				ClearHandshake("rpc-gone");
 				return;
 			}
 
@@ -29,13 +78,81 @@ namespace PortalAtlas
 			{
 				ZRoutedRpc.instance.Register(RpcRequestName, new Action<long>(RPC_Request));
 				ZRoutedRpc.instance.Register<string>(RpcResponseName, RPC_Response);
+				ZRoutedRpc.instance.Register(RpcHelloName, new Action<long>(RPC_Hello));
+				ZRoutedRpc.instance.Register<string>(RpcHelloAckName, RPC_HelloAck);
 				_registered = true;
-				PortalAtlasPlugin.ModLogger.LogInfo("Registered portal Refresh RPCs.");
+				PortalAtlasPlugin.ModLogger.LogInfo("Registered portal Refresh + handshake RPCs.");
 			}
 			catch (Exception ex)
 			{
 				PortalAtlasPlugin.ModLogger.LogDebug($"RPC registration deferred: {ex.Message}");
 			}
+		}
+
+		/// <summary>
+		/// Dedicated clients ping the host so we know Refresh RPC exists before showing the button.
+		/// </summary>
+		internal static void TickHandshake()
+		{
+			if (ZNet.instance == null || ZRoutedRpc.instance == null || !_registered)
+			{
+				ClearHandshake("disconnected");
+				return;
+			}
+
+			if (ZNet.instance.IsServer())
+			{
+				// Listen host / dedicated: no client handshake needed.
+				if (!_helloAcked)
+				{
+					_helloAcked = true;
+					_hostVersion = PortalAtlasPlugin.PluginVersion;
+					_gaveUp = false;
+					NotifyHandshakeChanged();
+				}
+				return;
+			}
+
+			string worldKey = GetWorldKey();
+			if (!string.Equals(worldKey, _handshakeWorldKey, StringComparison.Ordinal))
+			{
+				ClearHandshake("world-changed");
+				_handshakeWorldKey = worldKey;
+			}
+
+			if (_helloAcked || _gaveUp)
+				return;
+
+			float now = Time.realtimeSinceStartup;
+			if (_handshakeStarted < 0f)
+			{
+				_handshakeStarted = now;
+				_nextHelloTime = now;
+				PortalAtlasPlugin.Debug("Handshake: starting Hello to dedicated host");
+			}
+
+			if (now - _handshakeStarted >= HelloGiveUpSeconds)
+			{
+				_gaveUp = true;
+				PortalAtlasPlugin.ModLogger.LogWarning(
+					"Portal Atlas handshake timed out — host does not appear to have this mod. Refresh world disabled.");
+				NotifyHandshakeChanged();
+				return;
+			}
+
+			if (now < _nextHelloTime)
+				return;
+
+			long server = GetServerPeerId();
+			if (server == 0L)
+			{
+				_nextHelloTime = now + 1f;
+				return;
+			}
+
+			PortalAtlasPlugin.Debug($"Handshake: Hello → server peer {server}");
+			ZRoutedRpc.instance.InvokeRoutedRPC(server, RpcHelloName);
+			_nextHelloTime = now + HelloRetrySeconds;
 		}
 
 		internal static bool RequestWorldList()
@@ -81,6 +198,29 @@ namespace PortalAtlas
 			PortalAtlasPlugin.Debug($"RequestWorldList invoking RPC → server peer {server}");
 			ZRoutedRpc.instance.InvokeRoutedRPC(server, RpcRequestName);
 			return true;
+		}
+
+		private static void RPC_Hello(long sender)
+		{
+			if (ZNet.instance == null || !ZNet.instance.IsServer() || ZRoutedRpc.instance == null)
+				return;
+
+			PortalAtlasPlugin.Debug($"Handshake: Hello from {sender} → Ack {PortalAtlasPlugin.PluginVersion}");
+			ZRoutedRpc.instance.InvokeRoutedRPC(sender, RpcHelloAckName, PortalAtlasPlugin.PluginVersion);
+		}
+
+		private static void RPC_HelloAck(long sender, string version)
+		{
+			if (ZNet.instance != null && ZNet.instance.IsServer())
+				return;
+
+			bool wasAcked = _helloAcked;
+			_helloAcked = true;
+			_gaveUp = false;
+			_hostVersion = string.IsNullOrEmpty(version) ? "?" : version;
+			PortalAtlasPlugin.Debug($"Handshake: HelloAck from host version={_hostVersion}");
+			if (!wasAcked)
+				NotifyHandshakeChanged();
 		}
 
 		private static void RPC_Request(long sender)
@@ -145,6 +285,48 @@ namespace PortalAtlas
 			PortalScan.AnalyzeRelationships(rows);
 			PortalAtlasPlugin.Debug($"RPC_Response decoded {rows.Count} row(s)");
 			OnWorldListReceived?.Invoke(rows);
+		}
+
+		private static void ClearHandshake(string reason)
+		{
+			bool had = _helloAcked || _gaveUp || _handshakeStarted >= 0f;
+			_helloAcked = false;
+			_hostVersion = null;
+			_handshakeStarted = -1f;
+			_nextHelloTime = 0f;
+			_gaveUp = false;
+			if (had)
+			{
+				PortalAtlasPlugin.Debug($"Handshake cleared ({reason})");
+				NotifyHandshakeChanged();
+			}
+		}
+
+		private static void NotifyHandshakeChanged()
+		{
+			try
+			{
+				OnHandshakeChanged?.Invoke();
+			}
+			catch (Exception ex)
+			{
+				PortalAtlasPlugin.Debug($"OnHandshakeChanged failed: {ex.Message}");
+			}
+		}
+
+		private static string GetWorldKey()
+		{
+			try
+			{
+				if (ZNet.instance == null)
+					return string.Empty;
+				string name = ZNet.instance.GetWorldName();
+				return name ?? string.Empty;
+			}
+			catch
+			{
+				return string.Empty;
+			}
 		}
 
 		internal static string EncodeRows(List<PortalRow> rows)

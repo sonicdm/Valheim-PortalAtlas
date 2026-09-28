@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.6
+
+- Client **handshake** on connect (`PortalAtlas_Hello` / `HelloAck`): Refresh world only works when the dedicated host has Portal Atlas **and** Server Devcommands reports admin.
+- Panel shows a **Refresh status line** (ready / checking server / missing mod / need admin) and greys the button when Refresh is unavailable.
+
 ## 1.2.5
 
 - Refresh world on a **dedicated server** uses Server Devcommands on the admin **client** for the button, and **PortalAtlas.dll** on the dedicated host for the scan RPC.

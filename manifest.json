@@ -1,7 +1,7 @@
 {
   "name": "PortalAtlas",
   "author": "SonicDM",
-  "version_number": "1.2.5",
+  "version_number": "1.2.6",
   "website_url": "https://github.com/sonicdm/Valheim-PortalAtlas",
   "description": "Personal portal atlas for Valheim. Record gates as you find them; admins can Refresh the full world list. Dedicated Refresh needs Server Devcommands. Optional Auto-pin. Vanilla pairing stays.",
   "dependencies": [
